@@ -39,6 +39,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Fetch CAR-bench package (uv path dependency)
+        run: git clone --depth 1 https://github.com/CAR-bench/car-bench.git third_party/car-bench
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
