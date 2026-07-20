@@ -130,6 +130,10 @@ def main() -> None:
         if args.executor_model is not None
         else _env_or_default("TRACK2_EXECUTOR_MODEL", DEFAULT_EXECUTOR_MODEL)
     )
+    api_base = (
+        _env_or_default("TRACK2_CEREBRAS_API_BASE", DEFAULT_CEREBRAS_API_BASE)
+        or DEFAULT_CEREBRAS_API_BASE
+    )
     service_tier = (
         args.service_tier
         if args.service_tier is not None
@@ -177,6 +181,7 @@ def main() -> None:
         transport=transport,
         planner=planner_kind,
         executor_model=executor_model,
+        api_base=api_base,
         service_tier=service_tier,
         temperature=temperature,
         reasoning_effort=reasoning_effort,
@@ -199,7 +204,7 @@ def main() -> None:
             )
         planner = planner_factory(
             model=executor_model or DEFAULT_EXECUTOR_MODEL,
-            api_base=DEFAULT_CEREBRAS_API_BASE,
+            api_base=api_base,
             service_tier=service_tier,
             reasoning_effort=reasoning_effort,
             logger=logger,
@@ -212,7 +217,7 @@ def main() -> None:
             )
         adaptive_planner = build_adaptive_minimal_planner(
             model=executor_model or DEFAULT_EXECUTOR_MODEL,
-            api_base=DEFAULT_CEREBRAS_API_BASE,
+            api_base=api_base,
             service_tier=service_tier,
             reasoning_effort=reasoning_effort,
             temperature=temperature,
@@ -310,7 +315,7 @@ def main() -> None:
     request_handler = DefaultRequestHandler(
         agent_executor=CARBenchAgentExecutor(
             model=executor_model or DEFAULT_EXECUTOR_MODEL,
-            api_base=DEFAULT_CEREBRAS_API_BASE,
+            api_base=api_base,
             service_tier=service_tier,
             temperature=temperature,
             reasoning_effort=reasoning_effort,
