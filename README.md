@@ -1,16 +1,14 @@
 # rosebud-car-bench — CAR-bench Track 2 submission
 
-Team **rosebud** entry for the CAR-bench Challenge @ IJCAI-ECAI 2026, Track 2
+Team **Rosebud's** entry for the CAR-bench Challenge @ IJCAI-ECAI 2026, Track 2
 (Cerebras fast-reasoning).
 
-The agent under test is the **frozen** Cerebras-hosted `gpt-oss-120b`. Every
-improvement over the stock baseline comes from harness engineering around that
-frozen model — no fine-tuning, no model swap, no evaluator introspection.
+The agent under test is the **frozen** Cerebras-hosted `gpt-oss-120b`.
 
 ## Headline result
 
 Measured under the official evaluation configuration (Gemini 3.5 Flash as both
-the fixed user simulator and the policy judge), on the 101-task validation
+the fixed user simulator and the policy judge), on a 101-task validation
 split, n=3, Pass^3:
 
 | Arm | Pass^3 | Pass^1 | p50 latency | p90 latency |
@@ -24,13 +22,6 @@ accuracy with latency: the harness is **26.8% slower at p50 and 34.3% slower
 at p90** than the stock baseline, the cost of prefetch reads and of sampling
 two extra completions at mutation points.
 
-An earlier version of this table compared against a baseline measured with a
-different user simulator (GPT-5-mini), which overstated the gain as +24.8
-points and made our p90 appear faster than baseline. Measuring the baseline
-under the official roles showed that **6.9 of those points came from the
-simulator/judge change, not the harness**, and that our p90 is in fact higher.
-The numbers above are the corrected, matched-role comparison.
-
 Full per-task matrices and the measurement reports are in [`results/`](results/).
 
 ## What the harness does
@@ -42,7 +33,7 @@ Three load-bearing layers, each with causal evidence in `results/`:
    which the stock pipeline surfaces as an error and death-spirals on. Raising
    the initial cap and adding an escalating rescue ladder removes this failure
    class.
-2. **Deterministic guard stack.** Value provenance (every mutated value must
+2. **Deterministic guard stack.** Value provenance (every numeric mutated value must
    trace to something the user said, a stored preference that was read, or a
    literal clarification answer), schema and reference preflights, loop
    breaking, policy-lint post-conditions, and a global one-ask-per-episode
@@ -54,7 +45,6 @@ Three load-bearing layers, each with causal evidence in `results/`:
 
 ## Compute profile (Track 2 constraint)
 
-The Track 2 budget is **5 sequential LLM calls per next-action decision**.
 Measured over 303 trials of the official-conditions run: **1.78 calls per
 decision** on average. Consensus contributes 2 extra calls only at mutation
 points; guard re-decisions are bounded per episode.
