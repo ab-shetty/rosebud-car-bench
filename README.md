@@ -88,9 +88,14 @@ configuration exposed entirely through environment variables. See
   submitted configuration. They ship because the technical report reports them
   as negative results.
 - `scenario.toml`, `scenarios/` — submission and development scenarios.
-- `results/` — measurement reports with per-task matrices.
-- `report/` — technical report source.
+- `results/` — measurement reports with per-task matrices, including
+  [`optionc_validation.md`](results/optionc_validation.md) (the GHCR image
+  validation record) and the arms we measured and **rejected**.
+
+The 4-page technical report is submitted separately and is not included here.
+The evaluator is the organizers' official published image; we neither modify
+nor ship one.
 
 This repository builds on the organizers' starter kit
 ([CAR-bench/car-bench-ijcai](https://github.com/CAR-bench/car-bench-ijcai));
-attributions for all external work are in the technical report.
+attributions for all external work appear in the technical report.
