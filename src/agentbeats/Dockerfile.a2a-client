@@ -1,0 +1,25 @@
+FROM ghcr.io/astral-sh/uv:python3.12-trixie AS python-deps
+
+RUN adduser carbench
+USER carbench
+RUN mkdir -p /home/carbench/.cache/uv
+WORKDIR /home/carbench/app
+
+COPY --chown=carbench:carbench pyproject.toml uv.lock README.md ./
+
+RUN \
+    --mount=type=cache,target=/home/carbench/.cache/uv,uid=1000 \
+    uv sync --frozen --no-install-project --no-dev
+
+FROM ghcr.io/astral-sh/uv:python3.12-trixie
+
+RUN adduser carbench
+USER carbench
+WORKDIR /home/carbench/app
+
+COPY --from=python-deps --chown=carbench:carbench /home/carbench/app/.venv .venv
+COPY --chown=carbench:carbench src src
+
+ENV PYTHONPATH=/home/carbench/app/src
+
+ENTRYPOINT [".venv/bin/python", "src/agentbeats/client_cli.py"]
