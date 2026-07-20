@@ -331,8 +331,6 @@ class CerebrasCompletionClient:
         max_completion_tokens: int,
         temperature: float | None,
         reasoning_effort: str | None = None,
-        request_timeout_seconds: float | None = None,
-        fail_fast: bool = False,
     ) -> CompletionCallResult:
         with self._request_lock:
             return self._generate_locked(
@@ -343,8 +341,6 @@ class CerebrasCompletionClient:
                 max_completion_tokens=max_completion_tokens,
                 temperature=temperature,
                 reasoning_effort=reasoning_effort,
-                request_timeout_seconds=request_timeout_seconds,
-                fail_fast=fail_fast,
             )
 
     def _generate_locked(
@@ -357,8 +353,6 @@ class CerebrasCompletionClient:
         max_completion_tokens: int,
         temperature: float | None,
         reasoning_effort: str | None = None,
-        request_timeout_seconds: float | None = None,
-        fail_fast: bool = False,
     ) -> CompletionCallResult:
         normalized_model = normalize_cerebras_model(model)
         normalized_reasoning_effort = _optional_text(reasoning_effort)
@@ -411,16 +405,8 @@ class CerebrasCompletionClient:
                 )
             start = time.perf_counter()
             try:
-                sdk_client = self._client
-                client_options: dict[str, Any] = {}
-                if request_timeout_seconds is not None:
-                    client_options["timeout"] = request_timeout_seconds
-                if fail_fast:
-                    client_options["max_retries"] = 0
-                if client_options:
-                    sdk_client = sdk_client.with_options(**client_options)
                 raw_response = (
-                    sdk_client.chat.completions.with_raw_response.create(**kwargs)
+                    self._client.chat.completions.with_raw_response.create(**kwargs)
                 )
                 completion = raw_response.parse()
             except Exception as exc:
@@ -445,10 +431,6 @@ class CerebrasCompletionClient:
                     rate_limit_signal=rate_limit_signal,
                     report_path=report_path,
                 )
-                if fail_fast:
-                    raise CerebrasTemplateError(
-                        f"Cerebras completion failed for {normalized_model}: {exc}"
-                    ) from exc
                 if (
                     rate_limit_signal is not None
                     and rate_limit_signal.schedule_wait_seconds is not None

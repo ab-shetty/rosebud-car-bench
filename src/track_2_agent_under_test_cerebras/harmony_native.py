@@ -173,24 +173,13 @@ class HarmonyNativeClient(cb.CerebrasCompletionClient):
             except (ValueError, json.JSONDecodeError) as exc:
                 parse_failures += 1
                 last_error = exc
-                length_stopped = (
-                    str(call.finish_reason or "").casefold() == "length"
-                )
                 if self.logger:
                     self.logger.warning(
                         "Native Harmony parse failure",
                         attempt=attempt + 1,
-                        retrying=(
-                            attempt < self.parse_retries and not length_stopped
-                        ),
-                        finish_reason=call.finish_reason,
+                        retrying=attempt < self.parse_retries,
                         error=str(exc),
                     )
-                # A same-cap retry only adds churn after a provider length stop.
-                # The adaptive planner owns the cap/effort rescue ladder and
-                # will retry at 8192-high then 8192-medium for the p3i51 arm.
-                if length_stopped:
-                    break
                 continue
             return HarmonyActionCall(
                 action=action,

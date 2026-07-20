@@ -280,28 +280,10 @@ def main() -> None:
             consensus_deepen=adaptive_planner.config.consensus_deepen,
             terminal_medium=adaptive_planner.config.terminal_medium,
             route_resolver=adaptive_planner.config.route_resolver,
-            route_budget=adaptive_planner.config.route_budget,
-            route_budget_limit=adaptive_planner.config.route_budget_limit,
-            nav_intent_preflight=(
-                adaptive_planner.config.nav_intent_preflight
-            ),
-            step_coverage=adaptive_planner.config.step_coverage,
-            p3_ask_gate_v2=adaptive_planner.config.p3_ask_gate_v2,
             ask_type_gate=adaptive_planner.config.ask_type_gate,
             textcall_guard=adaptive_planner.config.textcall_guard,
             arg_lint=adaptive_planner.config.arg_lint,
             read_resolve=adaptive_planner.config.read_resolve,
-            grounded_ask=adaptive_planner.config.grounded_ask,
-            ask_content_consensus=(
-                adaptive_planner.config.ask_content_consensus
-            ),
-            llm_consensus_judge=(
-                adaptive_planner.config.llm_consensus_judge
-            ),
-            llm_ask_triage=adaptive_planner.config.llm_ask_triage,
-            llm_limitation_classifier=(
-                adaptive_planner.config.llm_limitation_classifier
-            ),
             executor_reasoning_effort=(
                 adaptive_planner.executor_reasoning_effort
             ),

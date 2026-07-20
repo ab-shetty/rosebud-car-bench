@@ -11,8 +11,6 @@ import json
 import math
 import os
 import re
-import time
-from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -127,63 +125,6 @@ DEFAULT_ESCALATION_BUDGET = 3
 MICRO_PROMPT_TOKEN_CAP = 500
 PROCEDURES_TOKEN_CAP = 80
 PREFETCH_TOOL_CAP = 20
-LLM_CONSENSUS_JUDGE_EPISODE_CAP = 6
-LLM_CONSENSUS_JUDGE_COMPLETION_CAP = 512
-LLM_CONSENSUS_JUDGE_TIMEOUT_SECONDS = 15.0
-LLM_CONSENSUS_JUDGE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "groups": {
-            "type": "array",
-            "items": {
-                "type": "array",
-                "items": {"type": "integer"},
-            },
-        }
-    },
-    "required": ["groups"],
-    "additionalProperties": False,
-}
-LLM_ASK_TRIAGE_EPISODE_CAP = 2
-LLM_ASK_TRIAGE_COMPLETION_CAP = 512
-LLM_ASK_TRIAGE_TIMEOUT_SECONDS = 15.0
-LLM_ASK_TRIAGE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "label": {
-            "type": "string",
-            "enum": [
-                "RESOLVABLE_BY_READ",
-                "GENUINE_AMBIGUITY",
-                "NO_AMBIGUITY",
-            ],
-        },
-        "tool_name": {"type": "string"},
-        "arguments_json": {"type": "string"},
-    },
-    "required": ["label", "tool_name", "arguments_json"],
-    "additionalProperties": False,
-}
-LLM_LIMITATION_CLASSIFIER_COMPLETION_CAP = 512
-LLM_LIMITATION_CLASSIFIER_TIMEOUT_SECONDS = 15.0
-LLM_LIMITATION_CLASSIFIER_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "label": {
-            "type": "string",
-            "enum": [
-                "CAPABILITY_UNAVAILABLE_TERMINATE",
-                "CAPABILITY_AVAILABLE_CONTINUE",
-            ],
-        },
-        "tool_name": {"type": "string"},
-        "arguments_json": {"type": "string"},
-        "finding": {"type": "string"},
-    },
-    "required": ["label", "tool_name", "arguments_json", "finding"],
-    "additionalProperties": False,
-}
-ROUTE_BUDGET_DEFAULT = 6
 # Prefetch runs before the model can bind selector arguments.  Keep its
 # semantic mode deliberately narrower than the tool schema: these getters are
 # the catalog's genuinely zero-argument reads.  In particular, lookup getters
@@ -511,134 +452,7 @@ METRIC_ARG_LINT_ARGUMENT_BOUNCES = (
 METRIC_ARG_LINT_DISCLOSURE_REVISES = (
     "adaptive_minimal_arg_lint_disclosure_revises"
 )
-METRIC_ROUTE_BUDGET_FIRES = "adaptive_minimal_route_budget_fires"
-METRIC_ROUTE_BUDGET_BLOCKED_READS = (
-    "adaptive_minimal_route_budget_blocked_reads"
-)
-METRIC_ROUTE_BUDGET_TERMINAL_LIMITATIONS = (
-    "adaptive_minimal_route_budget_terminal_limitations"
-)
-METRIC_NAV_INTENT_PREFLIGHT_BOUNCES = (
-    "adaptive_minimal_nav_intent_preflight_bounces"
-)
-METRIC_NAV_INTENT_PREFLIGHT_PASS_THROUGHS = (
-    "adaptive_minimal_nav_intent_preflight_pass_throughs"
-)
-METRIC_STEP_COVERAGE_FIRES = "adaptive_minimal_step_coverage_fires"
-METRIC_STEP_COVERAGE_REDECISIONS = (
-    "adaptive_minimal_step_coverage_redecisions"
-)
-METRIC_P3_ASK_GATE_V2_SUPPRESSIONS = (
-    "adaptive_minimal_p3_ask_gate_v2_suppressions"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_CALLS = (
-    "adaptive_minimal_llm_limitation_classifier_calls"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_TERMINATES = (
-    "adaptive_minimal_llm_limitation_classifier_terminates"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_CONTINUES = (
-    "adaptive_minimal_llm_limitation_classifier_continues"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_ERRORS = (
-    "adaptive_minimal_llm_limitation_classifier_errors"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_TIMEOUTS = (
-    "adaptive_minimal_llm_limitation_classifier_timeouts"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_MALFORMED = (
-    "adaptive_minimal_llm_limitation_classifier_malformed"
-)
-METRIC_LLM_LIMITATION_CLASSIFIER_ADDED_LATENCY_MS = (
-    "adaptive_minimal_llm_limitation_classifier_added_latency_ms"
-)
 METRIC_READ_RESOLVE_REDIRECTS = "adaptive_minimal_read_resolve_redirects"
-METRIC_GROUNDED_ASK_FIRES = "adaptive_minimal_grounded_ask_fires"
-METRIC_GROUNDED_ASK_READS = "adaptive_minimal_grounded_ask_reads"
-METRIC_GROUNDED_ASK_REDRAFT_ASKS = (
-    "adaptive_minimal_grounded_ask_redraft_asks"
-)
-METRIC_GROUNDED_ASK_REDRAFT_ACTS = (
-    "adaptive_minimal_grounded_ask_redraft_acts"
-)
-METRIC_GROUNDED_ASK_REDRAFT_RESPONDS = (
-    "adaptive_minimal_grounded_ask_redraft_responds"
-)
-METRIC_ASK_CONTENT_CONSENSUS_INVOCATIONS = (
-    "adaptive_minimal_ask_content_consensus_invocations"
-)
-METRIC_ASK_CONTENT_CONSENSUS_MAJORITY_SELECTIONS = (
-    "adaptive_minimal_ask_content_consensus_majority_selections"
-)
-METRIC_ASK_CONTENT_CONSENSUS_FALLBACKS = (
-    "adaptive_minimal_ask_content_consensus_fallbacks"
-)
-METRIC_ASK_CONTENT_CONSENSUS_EXTRA_CALLS = (
-    "adaptive_minimal_ask_content_consensus_extra_llm_calls"
-)
-METRIC_ASK_CONTENT_CONSENSUS_ADDED_LATENCY_MS = (
-    "adaptive_minimal_ask_content_consensus_added_latency_ms"
-)
-METRIC_LLM_CONSENSUS_JUDGE_CALLS = (
-    "adaptive_minimal_llm_consensus_judge_calls"
-)
-METRIC_LLM_CONSENSUS_JUDGE_MAJORITIES = (
-    "adaptive_minimal_llm_consensus_judge_majorities"
-)
-METRIC_LLM_CONSENSUS_JUDGE_OVERRIDES = (
-    "adaptive_minimal_llm_consensus_judge_overrides"
-)
-METRIC_LLM_CONSENSUS_JUDGE_NO_MAJORITY = (
-    "adaptive_minimal_llm_consensus_judge_no_majority"
-)
-METRIC_LLM_CONSENSUS_JUDGE_ERRORS = (
-    "adaptive_minimal_llm_consensus_judge_errors"
-)
-METRIC_LLM_CONSENSUS_JUDGE_TIMEOUTS = (
-    "adaptive_minimal_llm_consensus_judge_timeouts"
-)
-METRIC_LLM_CONSENSUS_JUDGE_MALFORMED = (
-    "adaptive_minimal_llm_consensus_judge_malformed"
-)
-METRIC_LLM_CONSENSUS_JUDGE_BUDGET_SUPPRESSED = (
-    "adaptive_minimal_llm_consensus_judge_budget_suppressed"
-)
-METRIC_LLM_CONSENSUS_JUDGE_ADDED_LATENCY_MS = (
-    "adaptive_minimal_llm_consensus_judge_added_latency_ms"
-)
-METRIC_LLM_ASK_TRIAGE_CALLS = "adaptive_minimal_llm_ask_triage_calls"
-METRIC_LLM_ASK_TRIAGE_RESOLVABLE = (
-    "adaptive_minimal_llm_ask_triage_resolvable_labels"
-)
-METRIC_LLM_ASK_TRIAGE_GENUINE = (
-    "adaptive_minimal_llm_ask_triage_genuine_ambiguity_labels"
-)
-METRIC_LLM_ASK_TRIAGE_NO_AMBIGUITY = (
-    "adaptive_minimal_llm_ask_triage_no_ambiguity_labels"
-)
-METRIC_LLM_ASK_TRIAGE_FIRES = "adaptive_minimal_llm_ask_triage_fires"
-METRIC_LLM_ASK_TRIAGE_READS = "adaptive_minimal_llm_ask_triage_reads"
-METRIC_LLM_ASK_TRIAGE_INVALID = (
-    "adaptive_minimal_llm_ask_triage_invalid_proposals"
-)
-METRIC_LLM_ASK_TRIAGE_ERRORS = "adaptive_minimal_llm_ask_triage_errors"
-METRIC_LLM_ASK_TRIAGE_TIMEOUTS = "adaptive_minimal_llm_ask_triage_timeouts"
-METRIC_LLM_ASK_TRIAGE_MALFORMED = "adaptive_minimal_llm_ask_triage_malformed"
-METRIC_LLM_ASK_TRIAGE_BUDGET_SUPPRESSED = (
-    "adaptive_minimal_llm_ask_triage_budget_suppressed"
-)
-METRIC_LLM_ASK_TRIAGE_REDRAFT_ASKS = (
-    "adaptive_minimal_llm_ask_triage_redraft_asks"
-)
-METRIC_LLM_ASK_TRIAGE_REDRAFT_ACTS = (
-    "adaptive_minimal_llm_ask_triage_redraft_acts"
-)
-METRIC_LLM_ASK_TRIAGE_REDRAFT_RESPONDS = (
-    "adaptive_minimal_llm_ask_triage_redraft_responds"
-)
-METRIC_LLM_ASK_TRIAGE_ADDED_LATENCY_MS = (
-    "adaptive_minimal_llm_ask_triage_added_latency_ms"
-)
 METRIC_MUTATION_CONSENSUS_INVOCATIONS = (
     "adaptive_minimal_mutation_consensus_invocations"
 )
@@ -778,31 +592,15 @@ class AdaptiveMinimalConfig:
     consensus_deepen: bool = False
     terminal_medium: bool = False
     route_resolver: bool = False
-    route_budget: bool = False
-    route_budget_limit: int = ROUTE_BUDGET_DEFAULT
-    nav_intent_preflight: bool = False
-    step_coverage: bool = False
-    p3_ask_gate_v2: bool = False
     ask_type_gate: bool = False
     textcall_guard: bool = False
     arg_lint: bool = False
     read_resolve: bool = False
-    grounded_ask: bool = False
-    ask_content_consensus: bool = False
-    llm_consensus_judge: bool = False
-    llm_ask_triage: bool = False
-    llm_limitation_classifier: bool = False
 
     @classmethod
     def from_env(cls) -> "AdaptiveMinimalConfig":
         raw = os.getenv("TRACK2_AM_ESCALATION_BUDGET")
         budget = DEFAULT_ESCALATION_BUDGET if not raw or not raw.strip() else int(raw)
-        route_raw = os.getenv("TRACK2_AM_ROUTE_BUDGET_LIMIT")
-        route_budget_limit = (
-            ROUTE_BUDGET_DEFAULT
-            if not route_raw or not route_raw.strip()
-            else max(1, int(route_raw))
-        )
         return cls(
             escalation_budget=max(0, budget),
             prefetch=_env_flag("TRACK2_AM_PREFETCH"),
@@ -860,28 +658,10 @@ class AdaptiveMinimalConfig:
             consensus_deepen=_env_flag("TRACK2_AM_CONSENSUS_DEEPEN"),
             terminal_medium=_env_flag("TRACK2_AM_TERMINAL_MEDIUM"),
             route_resolver=_env_flag("TRACK2_AM_ROUTE_RESOLVER"),
-            route_budget=_env_flag("TRACK2_AM_ROUTE_BUDGET"),
-            route_budget_limit=route_budget_limit,
-            nav_intent_preflight=_env_flag(
-                "TRACK2_AM_NAV_INTENT_PREFLIGHT"
-            ),
-            step_coverage=_env_flag("TRACK2_AM_STEP_COVERAGE"),
-            p3_ask_gate_v2=_env_flag("TRACK2_AM_P3_ASK_GATE_V2"),
             ask_type_gate=_env_flag("TRACK2_AM_ASK_TYPE_GATE"),
             textcall_guard=_env_flag("TRACK2_AM_TEXTCALL_GUARD"),
             arg_lint=_env_flag("TRACK2_AM_ARG_LINT"),
             read_resolve=_env_flag("TRACK2_AM_READ_RESOLVE"),
-            grounded_ask=_env_flag("TRACK2_AM_GROUNDED_ASK"),
-            ask_content_consensus=_env_flag(
-                "TRACK2_AM_ASK_CONTENT_CONSENSUS"
-            ),
-            llm_consensus_judge=_env_flag(
-                "TRACK2_AM_LLM_CONSENSUS_JUDGE"
-            ),
-            llm_ask_triage=_env_flag("TRACK2_AM_LLM_ASK_TRIAGE"),
-            llm_limitation_classifier=_env_flag(
-                "TRACK2_AM_LLM_LIMITATION_CLASSIFIER"
-            ),
         )
 
 
@@ -998,7 +778,6 @@ class _EpisodeState:
     ask_budget_suppressed: int = 0
     malformed_argument_rescue_fires: int = 0
     successful_get_results: dict[str, list[str]] = field(default_factory=dict)
-    successful_tool_names: set[str] = field(default_factory=set)
     route_reference_catalog: dict[str, tuple[str, str]] = field(
         default_factory=dict
     )
@@ -1042,18 +821,6 @@ class _EpisodeState:
     terminal_medium_added_latency_ms: float = 0.0
     route_resolver_fires: int = 0
     route_resolver_blocked_reads: int = 0
-    route_getter_call_counts: dict[str, int] = field(default_factory=dict)
-    route_budget_redirected_tools: set[str] = field(default_factory=set)
-    route_budget_fires: int = 0
-    route_budget_blocked_reads: int = 0
-    route_budget_terminal_limitations: int = 0
-    nav_intent_preflight_bounced: bool = False
-    nav_intent_preflight_bounces: int = 0
-    nav_intent_preflight_pass_throughs: int = 0
-    step_coverage_redecided: bool = False
-    step_coverage_fires: int = 0
-    step_coverage_redecisions: int = 0
-    p3_ask_gate_v2_suppressions: int = 0
     ask_type_gate_suppressions: int = 0
     textcall_guard_fires: int = 0
     textcall_guard_executes: int = 0
@@ -1063,51 +830,6 @@ class _EpisodeState:
     arg_lint_disclosure_revises: int = 0
     arg_lint_pending_disclosures: set[str] = field(default_factory=set)
     read_resolve_redirects: int = 0
-    grounded_ask_seen_referents: set[str] = field(default_factory=set)
-    grounded_ask_pending: dict[str, Any] | None = None
-    grounded_ask_fires: int = 0
-    grounded_ask_reads: int = 0
-    grounded_ask_redraft_asks: int = 0
-    grounded_ask_redraft_acts: int = 0
-    grounded_ask_redraft_responds: int = 0
-    ask_content_consensus_invocations: int = 0
-    ask_content_consensus_majority_selections: int = 0
-    ask_content_consensus_fallbacks: int = 0
-    ask_content_consensus_extra_calls: int = 0
-    ask_content_consensus_added_latency_ms: float = 0.0
-    llm_consensus_judge_calls: int = 0
-    llm_consensus_judge_majorities: int = 0
-    llm_consensus_judge_overrides: int = 0
-    llm_consensus_judge_no_majority: int = 0
-    llm_consensus_judge_errors: int = 0
-    llm_consensus_judge_timeouts: int = 0
-    llm_consensus_judge_malformed: int = 0
-    llm_consensus_judge_budget_suppressed: int = 0
-    llm_consensus_judge_added_latency_ms: float = 0.0
-    llm_ask_triage_pending: dict[str, Any] | None = None
-    llm_ask_triage_calls: int = 0
-    llm_ask_triage_resolvable: int = 0
-    llm_ask_triage_genuine: int = 0
-    llm_ask_triage_no_ambiguity: int = 0
-    llm_ask_triage_fires: int = 0
-    llm_ask_triage_reads: int = 0
-    llm_ask_triage_invalid: int = 0
-    llm_ask_triage_errors: int = 0
-    llm_ask_triage_timeouts: int = 0
-    llm_ask_triage_malformed: int = 0
-    llm_ask_triage_budget_suppressed: int = 0
-    llm_ask_triage_redraft_asks: int = 0
-    llm_ask_triage_redraft_acts: int = 0
-    llm_ask_triage_redraft_responds: int = 0
-    llm_ask_triage_added_latency_ms: float = 0.0
-    unavailability_evidence: list[str] = field(default_factory=list)
-    llm_limitation_classifier_calls: int = 0
-    llm_limitation_classifier_terminates: int = 0
-    llm_limitation_classifier_continues: int = 0
-    llm_limitation_classifier_errors: int = 0
-    llm_limitation_classifier_timeouts: int = 0
-    llm_limitation_classifier_malformed: int = 0
-    llm_limitation_classifier_added_latency_ms: float = 0.0
 
 
 @dataclass
@@ -1196,14 +918,6 @@ class _CallTally:
     terminal_medium_added_latency_ms: float = 0.0
     route_resolver_fires: int = 0
     route_resolver_blocked_reads: int = 0
-    route_budget_fires: int = 0
-    route_budget_blocked_reads: int = 0
-    route_budget_terminal_limitations: int = 0
-    nav_intent_preflight_bounces: int = 0
-    nav_intent_preflight_pass_throughs: int = 0
-    step_coverage_fires: int = 0
-    step_coverage_redecisions: int = 0
-    p3_ask_gate_v2_suppressions: int = 0
     ask_type_gate_suppressions: int = 0
     textcall_guard_fires: int = 0
     textcall_guard_executes: int = 0
@@ -1212,47 +926,6 @@ class _CallTally:
     arg_lint_argument_bounces: int = 0
     arg_lint_disclosure_revises: int = 0
     read_resolve_redirects: int = 0
-    grounded_ask_fires: int = 0
-    grounded_ask_reads: int = 0
-    grounded_ask_redraft_asks: int = 0
-    grounded_ask_redraft_acts: int = 0
-    grounded_ask_redraft_responds: int = 0
-    ask_content_consensus_invocations: int = 0
-    ask_content_consensus_majority_selections: int = 0
-    ask_content_consensus_fallbacks: int = 0
-    ask_content_consensus_extra_calls: int = 0
-    ask_content_consensus_added_latency_ms: float = 0.0
-    llm_consensus_judge_calls: int = 0
-    llm_consensus_judge_majorities: int = 0
-    llm_consensus_judge_overrides: int = 0
-    llm_consensus_judge_no_majority: int = 0
-    llm_consensus_judge_errors: int = 0
-    llm_consensus_judge_timeouts: int = 0
-    llm_consensus_judge_malformed: int = 0
-    llm_consensus_judge_budget_suppressed: int = 0
-    llm_consensus_judge_added_latency_ms: float = 0.0
-    llm_ask_triage_calls: int = 0
-    llm_ask_triage_resolvable: int = 0
-    llm_ask_triage_genuine: int = 0
-    llm_ask_triage_no_ambiguity: int = 0
-    llm_ask_triage_fires: int = 0
-    llm_ask_triage_reads: int = 0
-    llm_ask_triage_invalid: int = 0
-    llm_ask_triage_errors: int = 0
-    llm_ask_triage_timeouts: int = 0
-    llm_ask_triage_malformed: int = 0
-    llm_ask_triage_budget_suppressed: int = 0
-    llm_ask_triage_redraft_asks: int = 0
-    llm_ask_triage_redraft_acts: int = 0
-    llm_ask_triage_redraft_responds: int = 0
-    llm_ask_triage_added_latency_ms: float = 0.0
-    llm_limitation_classifier_calls: int = 0
-    llm_limitation_classifier_terminates: int = 0
-    llm_limitation_classifier_continues: int = 0
-    llm_limitation_classifier_errors: int = 0
-    llm_limitation_classifier_timeouts: int = 0
-    llm_limitation_classifier_malformed: int = 0
-    llm_limitation_classifier_added_latency_ms: float = 0.0
 
     def add(
         self,
@@ -1530,25 +1203,6 @@ class AdaptiveMinimalPlanner:
             messages, state, ctx_logger
         )
         tool_fault = _ingest_tool_results(messages, state)
-        grounded_ask_redraft = (
-            state.grounded_ask_pending
-            if self.config.grounded_ask
-            else None
-        )
-        if grounded_ask_redraft is not None:
-            # The grounding reads were emitted by the preceding planner turn.
-            # Consume the latch before calling the model so this mechanism can
-            # never recursively ground its own re-draft.
-            state.grounded_ask_pending = None
-        llm_ask_triage_redraft = (
-            state.llm_ask_triage_pending
-            if self.config.llm_ask_triage
-            else None
-        )
-        if llm_ask_triage_redraft is not None:
-            # Consume before the model call. The re-draft is final for this
-            # mechanism whatever its decision shape, so triage cannot loop.
-            state.llm_ask_triage_pending = None
         if tool_fault is not None and tool_fault.signal == SIGNAL_TOOL_ERROR:
             self._activate_struggle_effort(
                 state, "tool_execution_error", ctx_logger
@@ -1651,35 +1305,6 @@ class AdaptiveMinimalPlanner:
 
         action: dict[str, Any] | None = None
         fault_for_call = initial_fault if escalation_signal is not None else None
-        if llm_ask_triage_redraft is not None:
-            original_question = str(
-                llm_ask_triage_redraft.get("question") or ""
-            )
-            triage_note = (
-                "You previously drafted this clarification question: "
-                f"{original_question!r}. A classifier-selected read has now "
-                "returned in the conversation. Re-draft exactly once using "
-                "that result. The new decision may ask the user, issue tool "
-                "calls, or respond; asking remains allowed."
-            )
-            if initial_fault is not None:
-                triage_note += " Also account for: " + initial_fault.text
-            fault_for_call = InternalFault("llm_ask_triage", triage_note)
-        elif grounded_ask_redraft is not None:
-            original_question = str(
-                grounded_ask_redraft.get("question") or ""
-            )
-            grounding_note = (
-                "You previously drafted this clarification question: "
-                f"{original_question!r}. The deterministic grounding reads "
-                "you requested are now in the conversation as tool results. "
-                "Re-draft the decision exactly once using those results. The "
-                "new decision may ask the user, issue tool calls, or respond; "
-                "do not assume that asking is forbidden."
-            )
-            if initial_fault is not None:
-                grounding_note += " Also account for: " + initial_fault.text
-            fault_for_call = InternalFault("grounded_ask", grounding_note)
         terminal_high_reviewed = bool(
             self.config.terminal_effort_high
             and fault_for_call is not None
@@ -1715,7 +1340,6 @@ class AdaptiveMinimalPlanner:
         policy_lint_revised = False
         arg_lint_argument_bounced = False
         arg_lint_disclosure_revised = False
-        injected_asks_before_draft = state.injected_asks
         last_executor_context: tuple[
             InternalFault | None, FewShotSelection | None, str, str | None
         ] | None = None
@@ -1922,26 +1546,30 @@ class AdaptiveMinimalPlanner:
                 break
 
             if self.config.textcall_guard:
-                _, textcall_detected = _textcall_guard_candidate(
+                textcall_action, textcall_detected = _textcall_guard_candidate(
                     action, state
                 )
                 if textcall_detected and state.textcall_guard_fires < 2:
                     state.textcall_guard_fires += 1
                     tally.textcall_guard_fires += 1
-                    state.textcall_guard_redecides += 1
-                    tally.textcall_guard_redecides += 1
-                    outcome = "redecide_only"
-                    fault_for_call = InternalFault(
-                        "textcall_guard",
-                        "The draft described a tool call as user-visible text "
-                        "instead of executing it. Re-decide once. If the "
-                        "mutation is still requested and confirmed, issue a "
-                        "schema-valid call whose identifiers and addresses "
-                        "exactly match successful read results; otherwise state "
-                        "plainly why it cannot be executed. Never reconstruct "
-                        "or direct-execute a call parsed from prose.",
-                    )
-                    action = None
+                    if textcall_action is not None:
+                        action = textcall_action
+                        state.textcall_guard_executes += 1
+                        tally.textcall_guard_executes += 1
+                        outcome = "execute_schema_valid_call"
+                    else:
+                        state.textcall_guard_redecides += 1
+                        tally.textcall_guard_redecides += 1
+                        outcome = "redecide"
+                        fault_for_call = InternalFault(
+                            "textcall_guard",
+                            "The draft described a tool call as user-visible "
+                            "text instead of executing it. If the mutation is "
+                            "still requested and confirmed, issue the schema-valid "
+                            "tool call now; otherwise state plainly why it cannot "
+                            "be executed. Do not print tool syntax to the user.",
+                        )
+                        action = None
                     ctx_logger.info(
                         "Adaptive-minimal textcall guard fired",
                         outcome=outcome,
@@ -1949,7 +1577,8 @@ class AdaptiveMinimalPlanner:
                         executes_episode=state.textcall_guard_executes,
                         redecides_episode=state.textcall_guard_redecides,
                     )
-                    continue
+                    if action is None:
+                        continue
 
             if self.config.read_resolve:
                 resolved_read = _read_resolve_action(
@@ -2005,33 +1634,6 @@ class AdaptiveMinimalPlanner:
                     action = None
                     continue
 
-            if self.config.nav_intent_preflight:
-                nav_fault = _nav_intent_preflight_fault(
-                    action, messages=messages, state=state
-                )
-                if nav_fault is not None:
-                    if not state.nav_intent_preflight_bounced:
-                        state.nav_intent_preflight_bounced = True
-                        state.nav_intent_preflight_bounces += 1
-                        tally.nav_intent_preflight_bounces += 1
-                        fault_for_call = nav_fault
-                        ctx_logger.info(
-                            "Adaptive-minimal navigation-intent preflight bounced",
-                            fault=nav_fault.text,
-                            bounces_episode=state.nav_intent_preflight_bounces,
-                        )
-                        action = None
-                        continue
-                    state.nav_intent_preflight_pass_throughs += 1
-                    tally.nav_intent_preflight_pass_throughs += 1
-                    ctx_logger.info(
-                        "Adaptive-minimal navigation-intent preflight failed open",
-                        fault=nav_fault.text,
-                        pass_throughs_episode=(
-                            state.nav_intent_preflight_pass_throughs
-                        ),
-                    )
-
             if self.config.route_resolver:
                 action, resolver_blocked, resolver_note = _apply_route_resolver(
                     action, state
@@ -2051,28 +1653,6 @@ class AdaptiveMinimalPlanner:
                         fault_for_call = InternalFault(
                             "route_resolver", str(resolver_note or "Use cached routes.")
                         )
-                        continue
-
-            if self.config.route_budget:
-                action, budget_fault, blocked, terminal = _apply_route_budget(
-                    action, state, limit=self.config.route_budget_limit
-                )
-                if blocked:
-                    state.route_budget_fires += 1
-                    tally.route_budget_fires += 1
-                    state.route_budget_blocked_reads += blocked
-                    tally.route_budget_blocked_reads += blocked
-                    if terminal:
-                        state.route_budget_terminal_limitations += 1
-                        tally.route_budget_terminal_limitations += 1
-                    ctx_logger.info(
-                        "Adaptive-minimal route budget blocked calls",
-                        blocked=blocked,
-                        terminal_limitation=terminal,
-                        fires_episode=state.route_budget_fires,
-                    )
-                    if budget_fault is not None:
-                        fault_for_call = budget_fault
                         continue
 
             if self.config.repeated_read_breaker:
@@ -2202,51 +1782,6 @@ class AdaptiveMinimalPlanner:
                         ),
                     }
 
-            if self.config.llm_limitation_classifier:
-                limitation_evidence = _limitation_classifier_trigger(
-                    action, messages=messages, state=state
-                )
-                if limitation_evidence is not None:
-                    limitation_fault = self._apply_llm_limitation_classifier(
-                        action=action,
-                        evidence=limitation_evidence,
-                        state=state,
-                        messages=messages,
-                        tally=tally,
-                        ctx_logger=ctx_logger,
-                    )
-                    if limitation_fault is not None:
-                        fault_for_call = limitation_fault
-                        action = None
-                        continue
-
-            if self.config.step_coverage and not state.step_coverage_redecided:
-                missing_steps = _step_coverage_missing_tools(
-                    action, messages=messages, state=state
-                )
-                if missing_steps:
-                    state.step_coverage_redecided = True
-                    state.step_coverage_fires += 1
-                    state.step_coverage_redecisions += 1
-                    tally.step_coverage_fires += 1
-                    tally.step_coverage_redecisions += 1
-                    fault_for_call = InternalFault(
-                        "step_coverage",
-                        "The terminal draft leaves explicit requested or "
-                        "catalog/policy-dependent operations unaddressed: "
-                        + ", ".join(missing_steps)
-                        + ". Re-decide once and execute only those schema-valid "
-                        "missing steps; do not invent unrelated actions.",
-                    )
-                    ctx_logger.info(
-                        "Adaptive-minimal step coverage scheduled re-decision",
-                        missing_tools=missing_steps,
-                        fires_episode=state.step_coverage_fires,
-                    )
-                    action = None
-                    continue
-
-            if self.config.value_provenance:
                 if (
                     _respond_claims_performed_action(action)
                     and not state.successful_mutations
@@ -2439,102 +1974,6 @@ class AdaptiveMinimalPlanner:
                 continue
             break
 
-        if (
-            self.config.llm_ask_triage
-            and llm_ask_triage_redraft is None
-            and _is_clarification_question(action)
-            and state.injected_asks == injected_asks_before_draft
-        ):
-            triage_read, triage_outcome = self._apply_llm_ask_triage(
-                action=action,
-                state=state,
-                messages=messages,
-                tools=tools,
-                tally=tally,
-                ctx_logger=ctx_logger,
-            )
-            if triage_read is not None:
-                state.llm_ask_triage_pending = {
-                    "question": str(action.get("content") or ""),
-                }
-                state.llm_ask_triage_fires += 1
-                state.llm_ask_triage_reads += 1
-                state.injected_reads += 1
-                tally.llm_ask_triage_fires += 1
-                tally.llm_ask_triage_reads += 1
-                self.last_decision = self._decision_meta(
-                    state=state,
-                    route="llm_ask_triage_read",
-                    calls=tally.calls,
-                    injected_reads=1,
-                    escalation_signal=escalation_signal,
-                    disclosure_fastest_fixes=0,
-                )
-                ctx_logger.info(
-                    "Adaptive-minimal LLM ask triage injected free read",
-                    outcome=triage_outcome,
-                    tool_name=(triage_read.get("tool_calls") or [{}])[0].get(
-                        "tool_name"
-                    ),
-                    calls_episode=state.llm_ask_triage_calls,
-                    fires_episode=state.llm_ask_triage_fires,
-                    reads_episode=state.llm_ask_triage_reads,
-                )
-                ctx_logger.info("Adaptive-minimal decision", **self.last_decision)
-                return self._result(
-                    triage_read,
-                    tally,
-                    state=state,
-                    injected_reads=1,
-                    escalation_signal=escalation_signal,
-                    prefetch_error_drops=prefetch_error_drops,
-                )
-
-        if self.config.grounded_ask and grounded_ask_redraft is None:
-            grounded = _grounded_ask_read_action(
-                action,
-                messages=messages,
-                state=state,
-            )
-            if grounded is not None:
-                read_action, referent_key = grounded
-                read_count = len(read_action.get("tool_calls") or [])
-                state.grounded_ask_seen_referents.add(referent_key)
-                state.grounded_ask_pending = {
-                    "question": str(action.get("content") or ""),
-                    "referent_key": referent_key,
-                }
-                state.grounded_ask_fires += 1
-                state.grounded_ask_reads += read_count
-                tally.grounded_ask_fires += 1
-                tally.grounded_ask_reads += read_count
-                self.last_decision = self._decision_meta(
-                    state=state,
-                    route="grounded_ask_reads",
-                    calls=tally.calls,
-                    injected_reads=0,
-                    escalation_signal=escalation_signal,
-                    disclosure_fastest_fixes=0,
-                )
-                ctx_logger.info(
-                    "Adaptive-minimal grounded ask injected free reads",
-                    tool_names=[
-                        call.get("tool_name")
-                        for call in read_action.get("tool_calls") or []
-                    ],
-                    fires_episode=state.grounded_ask_fires,
-                    reads_episode=state.grounded_ask_reads,
-                )
-                ctx_logger.info("Adaptive-minimal decision", **self.last_decision)
-                return self._result(
-                    read_action,
-                    tally,
-                    state=state,
-                    injected_reads=0,
-                    escalation_signal=escalation_signal,
-                    prefetch_error_drops=prefetch_error_drops,
-                )
-
         action = _apply_pre_mutation_guards(
             action,
             state=state,
@@ -2567,68 +2006,6 @@ class AdaptiveMinimalPlanner:
             and last_executor_context is not None
         ):
             action = self._apply_terminal_consensus(
-                original_action=action,
-                state=state,
-                messages=messages,
-                tools=tools,
-                executor_context=last_executor_context,
-                tally=tally,
-                ctx_logger=ctx_logger,
-            )
-
-        if grounded_ask_redraft is not None:
-            if _is_clarification_question(action):
-                state.grounded_ask_redraft_asks += 1
-                tally.grounded_ask_redraft_asks += 1
-                grounded_outcome = "ask"
-            elif action.get("action") == "tool_calls":
-                state.grounded_ask_redraft_acts += 1
-                tally.grounded_ask_redraft_acts += 1
-                grounded_outcome = "act"
-            else:
-                state.grounded_ask_redraft_responds += 1
-                tally.grounded_ask_redraft_responds += 1
-                grounded_outcome = "respond"
-            ctx_logger.info(
-                "Adaptive-minimal grounded ask re-draft completed",
-                outcome=grounded_outcome,
-                redraft_asks_episode=state.grounded_ask_redraft_asks,
-                redraft_acts_episode=state.grounded_ask_redraft_acts,
-                redraft_responds_episode=(
-                    state.grounded_ask_redraft_responds
-                ),
-            )
-
-        if llm_ask_triage_redraft is not None:
-            if _is_clarification_question(action):
-                state.llm_ask_triage_redraft_asks += 1
-                tally.llm_ask_triage_redraft_asks += 1
-                triage_redraft_outcome = "ask"
-            elif action.get("action") == "tool_calls":
-                state.llm_ask_triage_redraft_acts += 1
-                tally.llm_ask_triage_redraft_acts += 1
-                triage_redraft_outcome = "act"
-            else:
-                state.llm_ask_triage_redraft_responds += 1
-                tally.llm_ask_triage_redraft_responds += 1
-                triage_redraft_outcome = "respond"
-            ctx_logger.info(
-                "Adaptive-minimal LLM ask triage re-draft completed",
-                outcome=triage_redraft_outcome,
-                redraft_asks_episode=state.llm_ask_triage_redraft_asks,
-                redraft_acts_episode=state.llm_ask_triage_redraft_acts,
-                redraft_responds_episode=(
-                    state.llm_ask_triage_redraft_responds
-                ),
-            )
-
-        if (
-            self.config.ask_content_consensus
-            and _is_clarification_question(action)
-            and state.ask_content_consensus_invocations < 3
-            and last_executor_context is not None
-        ):
-            action = self._apply_ask_content_consensus(
                 original_action=action,
                 state=state,
                 messages=messages,
@@ -3136,35 +2513,8 @@ class AdaptiveMinimalPlanner:
             **instrumentation,
         )
         if self.transport == HARMONY_NATIVE_TRANSPORT:
-            def record_native_call(
-                completion: Any,
-                *,
-                calls: int,
-                parse_failures: int,
-                analysis_text: str | None,
-                effort: str,
-            ) -> None:
-                tally.add(
-                    completion,
-                    calls=calls,
-                    parse_failures=parse_failures,
-                    analysis_text=analysis_text,
-                )
-                if effort == "high":
-                    state.terminal_effort_high_calls += calls
-                    tally.terminal_effort_high_calls += calls
-                else:
-                    state.terminal_effort_medium_calls += calls
-                    tally.terminal_effort_medium_calls += calls
-                self._record_struggle_effort_call(
-                    state=state,
-                    reasoning_effort=effort,
-                    duration_ms=float(completion.duration_ms),
-                    calls=calls,
-                )
-
-            def native_attempt(cap: int, effort: str) -> Any:
-                return self.client.generate_action(
+            try:
+                native = self.client.generate_action(
                     model=self.model,
                     messages=executor_messages,
                     tools=presented_tools,
@@ -3172,143 +2522,39 @@ class AdaptiveMinimalPlanner:
                     fault_text=(
                         prompt_fault.text if prompt_fault is not None else None
                     ),
-                    max_completion_tokens=cap,
+                    max_completion_tokens=self.max_completion_tokens,
                     temperature=self.temperature,
-                    reasoning_effort=effort,
+                    reasoning_effort=reasoning_effort,
                     analysis_to_replay=state.last_tool_call_analysis,
-                )
-
-            try:
-                native = native_attempt(
-                    self.max_completion_tokens, reasoning_effort
                 )
             except HarmonyNativeParseError as exc:
                 if exc.completion is not None:
-                    record_native_call(
+                    tally.add(
                         exc.completion,
                         calls=exc.call_count,
                         parse_failures=exc.parse_failures,
-                        analysis_text=None,
-                        effort=reasoning_effort,
                     )
                 else:
                     tally.parse_failures += exc.parse_failures
-                if not (
-                    self.config.truncation_rescue
-                    and exc.completion is not None
-                    and _is_truncated_empty_completion(
-                        exc.completion, self.max_completion_tokens
-                    )
-                ):
-                    raise
-                native = None
-
-            native_truncated = bool(
-                native is None
-                or _is_truncated_empty_completion(
-                    native.completion, self.max_completion_tokens
-                )
+                raise
+            tally.add(
+                native.completion,
+                calls=native.call_count,
+                parse_failures=native.parse_failures,
+                analysis_text=native.analysis_text,
             )
-            if native is not None:
-                record_native_call(
-                    native.completion,
-                    calls=native.call_count,
-                    parse_failures=native.parse_failures,
-                    analysis_text=native.analysis_text,
-                    effort=reasoning_effort,
-                )
-            if self.config.truncation_rescue and native_truncated:
-                state.truncation_rescue_fires += 1
-                tally.truncation_rescue_fires += 1
-                ctx_logger.warning(
-                    "Adaptive-minimal native Harmony truncation rescue fired",
-                    initial_cap=self.max_completion_tokens,
-                    finish_reason=(
-                        native.completion.finish_reason
-                        if native is not None
-                        else "length"
-                    ),
-                    fires_episode=state.truncation_rescue_fires,
-                )
-                high_mode = bool(
-                    self.config.executor_effort_high
-                    or (
-                        self.config.struggle_effort
-                        and state.struggle_effort_escalated
-                    )
-                )
-                rescue_attempts = (
-                    [(TRUNCATION_RESCUE_CAPS[-1], "high"),
-                     (TRUNCATION_RESCUE_CAPS[-1], "medium")]
-                    if self.config.rescue_quality and high_mode
-                    else [(TRUNCATION_RESCUE_CAPS[0], reasoning_effort),
-                          (TRUNCATION_RESCUE_CAPS[-1], "medium")]
-                )
-                last_parse_error: HarmonyNativeParseError | None = None
-                for attempt, (cap, retry_effort) in enumerate(
-                    rescue_attempts, start=1
-                ):
-                    try:
-                        retry = native_attempt(cap, retry_effort)
-                    except HarmonyNativeParseError as exc:
-                        last_parse_error = exc
-                        if exc.completion is not None:
-                            record_native_call(
-                                exc.completion,
-                                calls=exc.call_count,
-                                parse_failures=exc.parse_failures,
-                                analysis_text=None,
-                                effort=retry_effort,
-                            )
-                        else:
-                            tally.parse_failures += exc.parse_failures
-                        if not (
-                            exc.completion is not None
-                            and _is_truncated_empty_completion(
-                                exc.completion, cap
-                            )
-                        ):
-                            raise
-                        ctx_logger.info(
-                            "Adaptive-minimal native Harmony rescue attempt",
-                            attempt=attempt,
-                            max_completion_tokens=cap,
-                            reasoning_effort=retry_effort,
-                            finish_reason="length",
-                            usable=False,
-                        )
-                        continue
-                    record_native_call(
-                        retry.completion,
-                        calls=retry.call_count,
-                        parse_failures=retry.parse_failures,
-                        analysis_text=retry.analysis_text,
-                        effort=retry_effort,
-                    )
-                    still_truncated = _is_truncated_empty_completion(
-                        retry.completion, cap
-                    )
-                    ctx_logger.info(
-                        "Adaptive-minimal native Harmony rescue attempt",
-                        attempt=attempt,
-                        max_completion_tokens=cap,
-                        reasoning_effort=retry_effort,
-                        finish_reason=retry.completion.finish_reason,
-                        usable=not still_truncated,
-                    )
-                    if not still_truncated:
-                        native = retry
-                        break
-                else:
-                    if last_parse_error is not None:
-                        raise last_parse_error
-                    raise MalformedModelResponseError(
-                        "native Harmony completion remained truncated after rescue"
-                    )
-            if native is None:
-                raise MalformedModelResponseError(
-                    "native Harmony completion was unavailable after rescue"
-                )
+            if reasoning_effort == "high":
+                state.terminal_effort_high_calls += native.call_count
+                tally.terminal_effort_high_calls += native.call_count
+            else:
+                state.terminal_effort_medium_calls += native.call_count
+                tally.terminal_effort_medium_calls += native.call_count
+            self._record_struggle_effort_call(
+                state=state,
+                reasoning_effort=reasoning_effort,
+                duration_ms=float(native.completion.duration_ms),
+                calls=native.call_count,
+            )
             return native.action
 
         request_kwargs = dict(
@@ -3570,28 +2816,6 @@ class AdaptiveMinimalPlanner:
         selected, agreed, overridden, signatures = _select_mutation_consensus(
             guarded_candidates
         )
-        judge_outcome = "not_enabled"
-        if not agreed and self.config.llm_consensus_judge:
-            if (
-                state.llm_consensus_judge_calls
-                >= LLM_CONSENSUS_JUDGE_EPISODE_CAP
-            ):
-                state.llm_consensus_judge_budget_suppressed += 1
-                tally.llm_consensus_judge_budget_suppressed += 1
-                judge_outcome = "budget_suppressed"
-            else:
-                (
-                    selected,
-                    agreed,
-                    overridden,
-                    judge_outcome,
-                ) = self._apply_llm_consensus_judge(
-                    raw_candidates=raw_candidates,
-                    guarded_candidates=guarded_candidates,
-                    state=state,
-                    tally=tally,
-                    ctx_logger=ctx_logger,
-                )
         deepened = False
         deep_majority = False
         deep_extra_calls = 0
@@ -3706,460 +2930,8 @@ class AdaptiveMinimalPlanner:
             sample_reasoning_efforts=sample_reasoning_efforts,
             decision_signatures=signatures,
             candidate_guard_faults=candidate_faults,
-            llm_consensus_judge_outcome=judge_outcome,
         )
         return selected
-
-    def _apply_llm_consensus_judge(
-        self,
-        *,
-        raw_candidates: list[dict[str, Any] | None],
-        guarded_candidates: list[dict[str, Any] | None],
-        state: _EpisodeState,
-        tally: _CallTally,
-        ctx_logger: Any,
-    ) -> tuple[dict[str, Any], bool, bool, str]:
-        """Try one bounded semantic vote after exact consensus has failed.
-
-        The classifier receives only the three drafted call sets. It cannot
-        create or edit a decision. A strict, validated 2-of-3 grouping selects
-        the earliest existing draft in that group; every error fails open to
-        the original draft.
-        """
-
-        original = guarded_candidates[0]
-        if original is None:
-            raise ValueError("mutation consensus original cannot be rejected")
-
-        state.llm_consensus_judge_calls += 1
-        tally.llm_consensus_judge_calls += 1
-        started = time.perf_counter()
-        try:
-            result = self.client.generate(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Classify three drafted tool-call decisions by "
-                            "semantic equivalence. Two drafts are equivalent "
-                            "only when they use the same ordered tools and have "
-                            "the same intended effect. Pure formatting or "
-                            "serialization differences such as string versus "
-                            "number, a percent sign, case, or key order are "
-                            "equivalent. Different target entities or different "
-                            "values are not equivalent. Return a partition of "
-                            "candidate indices 0, 1, and 2 in strict JSON."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": json.dumps(
-                            {
-                                "candidates": [
-                                    _llm_consensus_judge_candidate(candidate)
-                                    for candidate in raw_candidates
-                                ]
-                            },
-                            ensure_ascii=False,
-                            sort_keys=True,
-                        ),
-                    },
-                ],
-                response_schema=LLM_CONSENSUS_JUDGE_SCHEMA,
-                response_schema_name="mutation_semantic_groups",
-                max_completion_tokens=LLM_CONSENSUS_JUDGE_COMPLETION_CAP,
-                temperature=0.0,
-                reasoning_effort="low",
-                request_timeout_seconds=LLM_CONSENSUS_JUDGE_TIMEOUT_SECONDS,
-                fail_fast=True,
-            )
-        except Exception as exc:
-            elapsed_ms = (time.perf_counter() - started) * 1000.0
-            tally.calls += 1
-            tally.duration_ms += elapsed_ms
-            state.llm_consensus_judge_added_latency_ms += elapsed_ms
-            tally.llm_consensus_judge_added_latency_ms += elapsed_ms
-            state.llm_consensus_judge_errors += 1
-            tally.llm_consensus_judge_errors += 1
-            timeout = _is_timeout_error(exc)
-            if timeout:
-                state.llm_consensus_judge_timeouts += 1
-                tally.llm_consensus_judge_timeouts += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM consensus judge failed open",
-                outcome="timeout" if timeout else "error",
-                exception_type=type(exc).__name__,
-                calls_episode=state.llm_consensus_judge_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return original, False, False, "timeout" if timeout else "error"
-
-        tally.add(result)
-        elapsed_ms = float(result.duration_ms)
-        state.llm_consensus_judge_added_latency_ms += elapsed_ms
-        tally.llm_consensus_judge_added_latency_ms += elapsed_ms
-        try:
-            selected_index, majority_indices = _parse_llm_consensus_judgment(
-                result.text, raw_candidates
-            )
-        except (json.JSONDecodeError, TypeError, ValueError) as exc:
-            state.llm_consensus_judge_malformed += 1
-            tally.llm_consensus_judge_malformed += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM consensus judge failed open",
-                outcome="malformed",
-                exception_type=type(exc).__name__,
-                calls_episode=state.llm_consensus_judge_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return original, False, False, "malformed"
-
-        if selected_index is None:
-            state.llm_consensus_judge_no_majority += 1
-            tally.llm_consensus_judge_no_majority += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM consensus judge failed open",
-                outcome="no_majority",
-                calls_episode=state.llm_consensus_judge_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return original, False, False, "no_majority"
-
-        selected = guarded_candidates[selected_index]
-        if selected is None:
-            state.llm_consensus_judge_malformed += 1
-            tally.llm_consensus_judge_malformed += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM consensus judge failed open",
-                outcome="selected_guard_rejected",
-                selected_index=selected_index,
-                calls_episode=state.llm_consensus_judge_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return original, False, False, "selected_guard_rejected"
-        overridden = selected_index != 0
-        state.llm_consensus_judge_majorities += 1
-        tally.llm_consensus_judge_majorities += 1
-        if overridden:
-            state.llm_consensus_judge_overrides += 1
-            tally.llm_consensus_judge_overrides += 1
-        ctx_logger.info(
-            "Adaptive-minimal LLM consensus judge selected majority",
-            outcome="semantic_majority",
-            majority_indices=list(majority_indices),
-            selected_index=selected_index,
-            override=overridden,
-            calls_episode=state.llm_consensus_judge_calls,
-            added_latency_ms=round(elapsed_ms, 3),
-        )
-        return selected, True, overridden, "semantic_majority"
-
-    def _apply_llm_ask_triage(
-        self,
-        *,
-        action: dict[str, Any],
-        state: _EpisodeState,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]],
-        tally: _CallTally,
-        ctx_logger: Any,
-    ) -> tuple[dict[str, Any] | None, str]:
-        """Classify one model-authored ask and fail open unless a read is valid."""
-
-        if state.llm_ask_triage_calls >= LLM_ASK_TRIAGE_EPISODE_CAP:
-            state.llm_ask_triage_budget_suppressed += 1
-            tally.llm_ask_triage_budget_suppressed += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM ask triage passed ask through",
-                outcome="budget_suppressed",
-                calls_episode=state.llm_ask_triage_calls,
-            )
-            return None, "budget_suppressed"
-
-        state.llm_ask_triage_calls += 1
-        tally.llm_ask_triage_calls += 1
-        tool_descriptions = [
-            {
-                "name": str(tool.get("function", {}).get("name") or ""),
-                "description": str(
-                    tool.get("function", {}).get("description") or ""
-                ),
-            }
-            for tool in tools
-            if str(tool.get("function", {}).get("name") or "")
-        ]
-        started = time.perf_counter()
-        try:
-            result = self.client.generate(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Classify the assistant's drafted clarification "
-                            "question using only the dialogue and available "
-                            "tool descriptions. Use RESOLVABLE_BY_READ only "
-                            "when one available read-only get_* call can resolve "
-                            "the question internally; provide that exact call. "
-                            "Use GENUINE_AMBIGUITY when user intent really must "
-                            "be clarified. Use NO_AMBIGUITY when the draft is not "
-                            "a genuine clarification need. Never propose a "
-                            "mutation. For non-read labels, return an empty tool "
-                            "name and '{}' arguments."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": json.dumps(
-                            {
-                                "dialogue": _messages_for_prompt(messages),
-                                "drafted_ask": str(action.get("content") or ""),
-                                "available_tools": tool_descriptions,
-                            },
-                            ensure_ascii=False,
-                            sort_keys=True,
-                        ),
-                    },
-                ],
-                response_schema=LLM_ASK_TRIAGE_SCHEMA,
-                response_schema_name="ask_triage",
-                max_completion_tokens=LLM_ASK_TRIAGE_COMPLETION_CAP,
-                temperature=0.0,
-                reasoning_effort="low",
-                request_timeout_seconds=LLM_ASK_TRIAGE_TIMEOUT_SECONDS,
-                fail_fast=True,
-            )
-        except Exception as exc:
-            elapsed_ms = (time.perf_counter() - started) * 1000.0
-            tally.calls += 1
-            tally.duration_ms += elapsed_ms
-            state.llm_ask_triage_added_latency_ms += elapsed_ms
-            tally.llm_ask_triage_added_latency_ms += elapsed_ms
-            state.llm_ask_triage_errors += 1
-            tally.llm_ask_triage_errors += 1
-            timeout = _is_timeout_error(exc)
-            if timeout:
-                state.llm_ask_triage_timeouts += 1
-                tally.llm_ask_triage_timeouts += 1
-            outcome = "timeout" if timeout else "error"
-            ctx_logger.info(
-                "Adaptive-minimal LLM ask triage passed ask through",
-                outcome=outcome,
-                exception_type=type(exc).__name__,
-                calls_episode=state.llm_ask_triage_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return None, outcome
-
-        tally.add(result)
-        elapsed_ms = float(result.duration_ms)
-        state.llm_ask_triage_added_latency_ms += elapsed_ms
-        tally.llm_ask_triage_added_latency_ms += elapsed_ms
-        try:
-            label, tool_name, arguments = _parse_llm_ask_triage_payload(
-                result.text
-            )
-        except (json.JSONDecodeError, TypeError, ValueError) as exc:
-            state.llm_ask_triage_malformed += 1
-            tally.llm_ask_triage_malformed += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM ask triage passed ask through",
-                outcome="malformed",
-                exception_type=type(exc).__name__,
-                calls_episode=state.llm_ask_triage_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return None, "malformed"
-
-        if label == "GENUINE_AMBIGUITY":
-            state.llm_ask_triage_genuine += 1
-            tally.llm_ask_triage_genuine += 1
-            outcome = "genuine_ambiguity"
-        elif label == "NO_AMBIGUITY":
-            state.llm_ask_triage_no_ambiguity += 1
-            tally.llm_ask_triage_no_ambiguity += 1
-            outcome = "no_ambiguity"
-        else:
-            state.llm_ask_triage_resolvable += 1
-            tally.llm_ask_triage_resolvable += 1
-            outcome = "resolvable_by_read"
-            proposed = {
-                "action": "tool_calls",
-                "tool_calls": [
-                    {"tool_name": tool_name, "arguments": arguments}
-                ],
-            }
-            tool = state.tools_by_name.get(tool_name)
-            invalid = (
-                tool is None
-                or not tool_name.casefold().startswith("get_")
-                or _schema_preflight_fault(proposed, state.tools_by_name)
-                is not None
-                or (
-                    not arguments
-                    and tool is not None
-                    and not _semantic_prefetch_call_valid(tool, arguments)
-                )
-            )
-            if invalid:
-                state.llm_ask_triage_invalid += 1
-                tally.llm_ask_triage_invalid += 1
-                ctx_logger.info(
-                    "Adaptive-minimal LLM ask triage passed ask through",
-                    outcome="invalid_read_proposal",
-                    calls_episode=state.llm_ask_triage_calls,
-                    added_latency_ms=round(elapsed_ms, 3),
-                )
-                return None, "invalid_read_proposal"
-            ctx_logger.info(
-                "Adaptive-minimal LLM ask triage classified draft",
-                outcome=outcome,
-                calls_episode=state.llm_ask_triage_calls,
-                added_latency_ms=round(elapsed_ms, 3),
-            )
-            return proposed, outcome
-
-        ctx_logger.info(
-            "Adaptive-minimal LLM ask triage passed ask through",
-            outcome=outcome,
-            calls_episode=state.llm_ask_triage_calls,
-            added_latency_ms=round(elapsed_ms, 3),
-        )
-        return None, outcome
-
-    def _apply_llm_limitation_classifier(
-        self,
-        *,
-        action: dict[str, Any],
-        evidence: str,
-        state: _EpisodeState,
-        messages: list[dict[str, Any]],
-        tally: _CallTally,
-        ctx_logger: Any,
-    ) -> InternalFault | None:
-        """Classify one unavailable-capability fork; every failure fails open."""
-
-        if state.llm_limitation_classifier_calls >= 1:
-            return None
-        state.llm_limitation_classifier_calls += 1
-        tally.llm_limitation_classifier_calls += 1
-        tools = [
-            {
-                "name": name,
-                "description": str(
-                    tool.get("function", {}).get("description") or ""
-                ),
-            }
-            for name, tool in sorted(state.tools_by_name.items())
-        ]
-        started = time.perf_counter()
-        try:
-            result = self.client.generate(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Decide whether the user's requested capability is "
-                            "actually unavailable from the supplied tool catalog "
-                            "and evidence. Use CAPABILITY_UNAVAILABLE_TERMINATE "
-                            "only when no schema-valid available call can satisfy "
-                            "the request. Otherwise use "
-                            "CAPABILITY_AVAILABLE_CONTINUE and name the exact "
-                            "schema-valid call. Return strict JSON."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": json.dumps(
-                            {
-                                "user_request": _all_user_text(messages),
-                                "draft": action,
-                                "available_tools": tools,
-                                "unavailability_evidence": evidence,
-                            },
-                            ensure_ascii=False,
-                            sort_keys=True,
-                        ),
-                    },
-                ],
-                response_schema=LLM_LIMITATION_CLASSIFIER_SCHEMA,
-                response_schema_name="limitation_classifier",
-                max_completion_tokens=LLM_LIMITATION_CLASSIFIER_COMPLETION_CAP,
-                temperature=0.0,
-                reasoning_effort="low",
-                request_timeout_seconds=LLM_LIMITATION_CLASSIFIER_TIMEOUT_SECONDS,
-                fail_fast=True,
-            )
-        except Exception as exc:
-            elapsed_ms = (time.perf_counter() - started) * 1000.0
-            tally.calls += 1
-            tally.duration_ms += elapsed_ms
-            state.llm_limitation_classifier_added_latency_ms += elapsed_ms
-            tally.llm_limitation_classifier_added_latency_ms += elapsed_ms
-            state.llm_limitation_classifier_errors += 1
-            tally.llm_limitation_classifier_errors += 1
-            timeout = _is_timeout_error(exc)
-            if timeout:
-                state.llm_limitation_classifier_timeouts += 1
-                tally.llm_limitation_classifier_timeouts += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM limitation classifier failed open",
-                outcome="timeout" if timeout else "error",
-            )
-            return None
-        tally.add(result)
-        elapsed_ms = float(result.duration_ms)
-        state.llm_limitation_classifier_added_latency_ms += elapsed_ms
-        tally.llm_limitation_classifier_added_latency_ms += elapsed_ms
-        try:
-            label, tool_name, arguments, finding = _parse_llm_limitation_payload(
-                result.text
-            )
-            if label == "CAPABILITY_AVAILABLE_CONTINUE":
-                candidate = {
-                    "action": "tool_calls",
-                    "tool_calls": [
-                        {"tool_name": tool_name, "arguments": arguments}
-                    ],
-                }
-                if (
-                    validate_next_action(candidate, state.tools_by_name) is not None
-                    or _schema_preflight_fault(candidate, state.tools_by_name)
-                    is not None
-                ):
-                    raise ValueError("classifier proposed a schema-invalid call")
-        except (json.JSONDecodeError, TypeError, ValueError) as exc:
-            state.llm_limitation_classifier_malformed += 1
-            tally.llm_limitation_classifier_malformed += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM limitation classifier failed open",
-                outcome="malformed",
-                exception_type=type(exc).__name__,
-            )
-            return None
-        if label == "CAPABILITY_AVAILABLE_CONTINUE":
-            state.llm_limitation_classifier_continues += 1
-            tally.llm_limitation_classifier_continues += 1
-            ctx_logger.info(
-                "Adaptive-minimal LLM limitation classifier continued",
-                proposed_tool=tool_name,
-            )
-            return None
-        state.llm_limitation_classifier_terminates += 1
-        tally.llm_limitation_classifier_terminates += 1
-        ctx_logger.info(
-            "Adaptive-minimal LLM limitation classifier scheduled re-decision",
-            finding=finding,
-        )
-        return InternalFault(
-            "llm_limitation_classifier",
-            "A low-effort catalog classifier found the requested capability "
-            "unavailable: " + finding + " Re-draft exactly once. Write your "
-            "own grounded limitation acknowledgment; do not retry substitute "
-            "calls and do not assume a forced conversation ending.",
-        )
 
     def _apply_consensus_winner_guards(
         self,
@@ -4329,100 +3101,6 @@ class AdaptiveMinimalPlanner:
             sampling_mode="sequential",
             decision_signatures=signatures,
             candidate_guard_faults=candidate_faults,
-        )
-        return selected
-
-    def _apply_ask_content_consensus(
-        self,
-        *,
-        original_action: dict[str, Any],
-        state: _EpisodeState,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]],
-        executor_context: tuple[
-            InternalFault | None, FewShotSelection | None, str, str | None
-        ],
-        tally: _CallTally,
-        ctx_logger: Any,
-    ) -> dict[str, Any]:
-        """Vote only among clarification asks; never change decision shape.
-
-        Both extra samples must themselves be asks before any content vote is
-        eligible. Actions and non-question responses are ignored, so this
-        mechanism is structurally unable to convert an ask into another action
-        class. A 2-of-3 normalized slot majority selects the first ask bearing
-        that signature; every other case fails open to the original ask.
-        """
-
-        fault, event_selection, reasoning_effort, terminal_draft = executor_context
-        state.ask_content_consensus_invocations += 1
-        tally.ask_content_consensus_invocations += 1
-        calls_before = tally.calls
-        duration_before = tally.duration_ms
-        candidates: list[dict[str, Any] | None] = [original_action]
-        sample_is_ask: list[bool] = []
-        sample_errors: list[str | None] = []
-        for sample_index in range(2):
-            try:
-                sampled = self._call_executor(
-                    state=state,
-                    messages=messages,
-                    tools=tools,
-                    fault=fault,
-                    event_selection=event_selection,
-                    tally=tally,
-                    ctx_logger=ctx_logger,
-                    reasoning_effort=reasoning_effort,
-                    terminal_draft=terminal_draft,
-                )
-            except (
-                MalformedModelResponseError,
-                json.JSONDecodeError,
-                ValueError,
-            ) as exc:
-                candidates.append(None)
-                sample_is_ask.append(False)
-                sample_errors.append(
-                    f"malformed sample {sample_index + 1}: {exc}"
-                )
-                continue
-            candidates.append(sampled)
-            sample_is_ask.append(_is_clarification_question(sampled))
-            sample_errors.append(None)
-
-        extra_calls = tally.calls - calls_before
-        added_latency_ms = tally.duration_ms - duration_before
-        state.ask_content_consensus_extra_calls += extra_calls
-        state.ask_content_consensus_added_latency_ms += added_latency_ms
-        tally.ask_content_consensus_extra_calls += extra_calls
-        tally.ask_content_consensus_added_latency_ms += added_latency_ms
-
-        selected, majority, signatures = _select_ask_content_consensus(
-            candidates,
-            tools_by_name=state.tools_by_name,
-        )
-        if majority:
-            state.ask_content_consensus_majority_selections += 1
-            tally.ask_content_consensus_majority_selections += 1
-            outcome = "majority_selection"
-        else:
-            state.ask_content_consensus_fallbacks += 1
-            tally.ask_content_consensus_fallbacks += 1
-            outcome = "original_fallback"
-
-        # The selector's type contract is a second hard boundary around the
-        # never-convert law, independent of provider output or slot parsing.
-        assert _is_clarification_question(selected)
-        ctx_logger.info(
-            "Adaptive-minimal ask-content consensus completed",
-            invocation_episode=state.ask_content_consensus_invocations,
-            outcome=outcome,
-            majority_selection=majority,
-            sample_asks=sum(sample_is_ask),
-            extra_llm_calls=extra_calls,
-            added_latency_ms=round(added_latency_ms, 3),
-            slot_signatures=signatures,
-            sample_errors=sample_errors,
         )
         return selected
 
@@ -4635,26 +3313,6 @@ class AdaptiveMinimalPlanner:
             "route_resolver_blocked_reads_episode": (
                 state.route_resolver_blocked_reads
             ),
-            "route_budget_fires_episode": state.route_budget_fires,
-            "route_budget_blocked_reads_episode": (
-                state.route_budget_blocked_reads
-            ),
-            "route_budget_terminal_limitations_episode": (
-                state.route_budget_terminal_limitations
-            ),
-            "nav_intent_preflight_bounces_episode": (
-                state.nav_intent_preflight_bounces
-            ),
-            "nav_intent_preflight_pass_throughs_episode": (
-                state.nav_intent_preflight_pass_throughs
-            ),
-            "step_coverage_fires_episode": state.step_coverage_fires,
-            "step_coverage_redecisions_episode": (
-                state.step_coverage_redecisions
-            ),
-            "p3_ask_gate_v2_suppressions_episode": (
-                state.p3_ask_gate_v2_suppressions
-            ),
             "ask_type_gate_suppressions_episode": (
                 state.ask_type_gate_suppressions
             ),
@@ -4669,113 +3327,6 @@ class AdaptiveMinimalPlanner:
                 state.arg_lint_disclosure_revises
             ),
             "read_resolve_redirects_episode": state.read_resolve_redirects,
-            "grounded_ask_fires_episode": state.grounded_ask_fires,
-            "grounded_ask_reads_episode": state.grounded_ask_reads,
-            "grounded_ask_redraft_asks_episode": (
-                state.grounded_ask_redraft_asks
-            ),
-            "grounded_ask_redraft_acts_episode": (
-                state.grounded_ask_redraft_acts
-            ),
-            "grounded_ask_redraft_responds_episode": (
-                state.grounded_ask_redraft_responds
-            ),
-            "ask_content_consensus_invocations_episode": (
-                state.ask_content_consensus_invocations
-            ),
-            "ask_content_consensus_majority_selections_episode": (
-                state.ask_content_consensus_majority_selections
-            ),
-            "ask_content_consensus_fallbacks_episode": (
-                state.ask_content_consensus_fallbacks
-            ),
-            "ask_content_consensus_extra_llm_calls_episode": (
-                state.ask_content_consensus_extra_calls
-            ),
-            "ask_content_consensus_added_latency_ms_episode": round(
-                state.ask_content_consensus_added_latency_ms, 3
-            ),
-            "llm_consensus_judge_calls_episode": (
-                state.llm_consensus_judge_calls
-            ),
-            "llm_consensus_judge_majorities_episode": (
-                state.llm_consensus_judge_majorities
-            ),
-            "llm_consensus_judge_overrides_episode": (
-                state.llm_consensus_judge_overrides
-            ),
-            "llm_consensus_judge_no_majority_episode": (
-                state.llm_consensus_judge_no_majority
-            ),
-            "llm_consensus_judge_errors_episode": (
-                state.llm_consensus_judge_errors
-            ),
-            "llm_consensus_judge_timeouts_episode": (
-                state.llm_consensus_judge_timeouts
-            ),
-            "llm_consensus_judge_malformed_episode": (
-                state.llm_consensus_judge_malformed
-            ),
-            "llm_consensus_judge_budget_suppressed_episode": (
-                state.llm_consensus_judge_budget_suppressed
-            ),
-            "llm_consensus_judge_added_latency_ms_episode": round(
-                state.llm_consensus_judge_added_latency_ms, 3
-            ),
-            "llm_ask_triage_calls_episode": state.llm_ask_triage_calls,
-            "llm_ask_triage_resolvable_labels_episode": (
-                state.llm_ask_triage_resolvable
-            ),
-            "llm_ask_triage_genuine_ambiguity_labels_episode": (
-                state.llm_ask_triage_genuine
-            ),
-            "llm_ask_triage_no_ambiguity_labels_episode": (
-                state.llm_ask_triage_no_ambiguity
-            ),
-            "llm_ask_triage_fires_episode": state.llm_ask_triage_fires,
-            "llm_ask_triage_reads_episode": state.llm_ask_triage_reads,
-            "llm_ask_triage_invalid_proposals_episode": (
-                state.llm_ask_triage_invalid
-            ),
-            "llm_ask_triage_errors_episode": state.llm_ask_triage_errors,
-            "llm_ask_triage_timeouts_episode": state.llm_ask_triage_timeouts,
-            "llm_ask_triage_malformed_episode": state.llm_ask_triage_malformed,
-            "llm_ask_triage_budget_suppressed_episode": (
-                state.llm_ask_triage_budget_suppressed
-            ),
-            "llm_ask_triage_redraft_asks_episode": (
-                state.llm_ask_triage_redraft_asks
-            ),
-            "llm_ask_triage_redraft_acts_episode": (
-                state.llm_ask_triage_redraft_acts
-            ),
-            "llm_ask_triage_redraft_responds_episode": (
-                state.llm_ask_triage_redraft_responds
-            ),
-            "llm_ask_triage_added_latency_ms_episode": round(
-                state.llm_ask_triage_added_latency_ms, 3
-            ),
-            "llm_limitation_classifier_calls_episode": (
-                state.llm_limitation_classifier_calls
-            ),
-            "llm_limitation_classifier_terminates_episode": (
-                state.llm_limitation_classifier_terminates
-            ),
-            "llm_limitation_classifier_continues_episode": (
-                state.llm_limitation_classifier_continues
-            ),
-            "llm_limitation_classifier_errors_episode": (
-                state.llm_limitation_classifier_errors
-            ),
-            "llm_limitation_classifier_timeouts_episode": (
-                state.llm_limitation_classifier_timeouts
-            ),
-            "llm_limitation_classifier_malformed_episode": (
-                state.llm_limitation_classifier_malformed
-            ),
-            "llm_limitation_classifier_added_latency_ms_episode": round(
-                state.llm_limitation_classifier_added_latency_ms, 3
-            ),
         }
         if self.config.phase_gate:
             meta.update(
@@ -4975,26 +3526,6 @@ class AdaptiveMinimalPlanner:
             METRIC_ROUTE_RESOLVER_BLOCKED_READS: (
                 tally.route_resolver_blocked_reads
             ),
-            METRIC_ROUTE_BUDGET_FIRES: tally.route_budget_fires,
-            METRIC_ROUTE_BUDGET_BLOCKED_READS: (
-                tally.route_budget_blocked_reads
-            ),
-            METRIC_ROUTE_BUDGET_TERMINAL_LIMITATIONS: (
-                tally.route_budget_terminal_limitations
-            ),
-            METRIC_NAV_INTENT_PREFLIGHT_BOUNCES: (
-                tally.nav_intent_preflight_bounces
-            ),
-            METRIC_NAV_INTENT_PREFLIGHT_PASS_THROUGHS: (
-                tally.nav_intent_preflight_pass_throughs
-            ),
-            METRIC_STEP_COVERAGE_FIRES: tally.step_coverage_fires,
-            METRIC_STEP_COVERAGE_REDECISIONS: (
-                tally.step_coverage_redecisions
-            ),
-            METRIC_P3_ASK_GATE_V2_SUPPRESSIONS: (
-                tally.p3_ask_gate_v2_suppressions
-            ),
             METRIC_ASK_TYPE_GATE_SUPPRESSIONS: (
                 tally.ask_type_gate_suppressions
             ),
@@ -5009,109 +3540,6 @@ class AdaptiveMinimalPlanner:
                 tally.arg_lint_disclosure_revises
             ),
             METRIC_READ_RESOLVE_REDIRECTS: tally.read_resolve_redirects,
-            METRIC_GROUNDED_ASK_FIRES: tally.grounded_ask_fires,
-            METRIC_GROUNDED_ASK_READS: tally.grounded_ask_reads,
-            METRIC_GROUNDED_ASK_REDRAFT_ASKS: (
-                tally.grounded_ask_redraft_asks
-            ),
-            METRIC_GROUNDED_ASK_REDRAFT_ACTS: (
-                tally.grounded_ask_redraft_acts
-            ),
-            METRIC_GROUNDED_ASK_REDRAFT_RESPONDS: (
-                tally.grounded_ask_redraft_responds
-            ),
-            METRIC_ASK_CONTENT_CONSENSUS_INVOCATIONS: (
-                tally.ask_content_consensus_invocations
-            ),
-            METRIC_ASK_CONTENT_CONSENSUS_MAJORITY_SELECTIONS: (
-                tally.ask_content_consensus_majority_selections
-            ),
-            METRIC_ASK_CONTENT_CONSENSUS_FALLBACKS: (
-                tally.ask_content_consensus_fallbacks
-            ),
-            METRIC_ASK_CONTENT_CONSENSUS_EXTRA_CALLS: (
-                tally.ask_content_consensus_extra_calls
-            ),
-            METRIC_ASK_CONTENT_CONSENSUS_ADDED_LATENCY_MS: round(
-                tally.ask_content_consensus_added_latency_ms, 3
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_CALLS: (
-                tally.llm_consensus_judge_calls
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_MAJORITIES: (
-                tally.llm_consensus_judge_majorities
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_OVERRIDES: (
-                tally.llm_consensus_judge_overrides
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_NO_MAJORITY: (
-                tally.llm_consensus_judge_no_majority
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_ERRORS: (
-                tally.llm_consensus_judge_errors
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_TIMEOUTS: (
-                tally.llm_consensus_judge_timeouts
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_MALFORMED: (
-                tally.llm_consensus_judge_malformed
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_BUDGET_SUPPRESSED: (
-                tally.llm_consensus_judge_budget_suppressed
-            ),
-            METRIC_LLM_CONSENSUS_JUDGE_ADDED_LATENCY_MS: round(
-                tally.llm_consensus_judge_added_latency_ms, 3
-            ),
-            METRIC_LLM_ASK_TRIAGE_CALLS: tally.llm_ask_triage_calls,
-            METRIC_LLM_ASK_TRIAGE_RESOLVABLE: (
-                tally.llm_ask_triage_resolvable
-            ),
-            METRIC_LLM_ASK_TRIAGE_GENUINE: tally.llm_ask_triage_genuine,
-            METRIC_LLM_ASK_TRIAGE_NO_AMBIGUITY: (
-                tally.llm_ask_triage_no_ambiguity
-            ),
-            METRIC_LLM_ASK_TRIAGE_FIRES: tally.llm_ask_triage_fires,
-            METRIC_LLM_ASK_TRIAGE_READS: tally.llm_ask_triage_reads,
-            METRIC_LLM_ASK_TRIAGE_INVALID: tally.llm_ask_triage_invalid,
-            METRIC_LLM_ASK_TRIAGE_ERRORS: tally.llm_ask_triage_errors,
-            METRIC_LLM_ASK_TRIAGE_TIMEOUTS: tally.llm_ask_triage_timeouts,
-            METRIC_LLM_ASK_TRIAGE_MALFORMED: tally.llm_ask_triage_malformed,
-            METRIC_LLM_ASK_TRIAGE_BUDGET_SUPPRESSED: (
-                tally.llm_ask_triage_budget_suppressed
-            ),
-            METRIC_LLM_ASK_TRIAGE_REDRAFT_ASKS: (
-                tally.llm_ask_triage_redraft_asks
-            ),
-            METRIC_LLM_ASK_TRIAGE_REDRAFT_ACTS: (
-                tally.llm_ask_triage_redraft_acts
-            ),
-            METRIC_LLM_ASK_TRIAGE_REDRAFT_RESPONDS: (
-                tally.llm_ask_triage_redraft_responds
-            ),
-            METRIC_LLM_ASK_TRIAGE_ADDED_LATENCY_MS: round(
-                tally.llm_ask_triage_added_latency_ms, 3
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_CALLS: (
-                tally.llm_limitation_classifier_calls
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_TERMINATES: (
-                tally.llm_limitation_classifier_terminates
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_CONTINUES: (
-                tally.llm_limitation_classifier_continues
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_ERRORS: (
-                tally.llm_limitation_classifier_errors
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_TIMEOUTS: (
-                tally.llm_limitation_classifier_timeouts
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_MALFORMED: (
-                tally.llm_limitation_classifier_malformed
-            ),
-            METRIC_LLM_LIMITATION_CLASSIFIER_ADDED_LATENCY_MS: round(
-                tally.llm_limitation_classifier_added_latency_ms, 3
-            ),
             METRIC_TERMINAL_READBACK_FIRES: int(
                 action.get("action") == "tool_calls"
                 and bool(state.terminal_readback_pending_reads)
@@ -5838,157 +4266,6 @@ def _canonical_consensus_value(value: Any) -> Any:
     return value
 
 
-def _llm_consensus_judge_candidate(
-    action: dict[str, Any] | None,
-) -> dict[str, Any]:
-    """Expose only an existing draft's ordered calls to the classifier."""
-
-    if action is None:
-        return {"rejected": True, "calls": []}
-    return {
-        "rejected": False,
-        "calls": [
-            {
-                "tool_name": str(call.get("tool_name") or ""),
-                "arguments": call.get("arguments") or {},
-            }
-            for call in action.get("tool_calls") or []
-        ],
-    }
-
-
-def _llm_consensus_tool_signature(action: dict[str, Any]) -> tuple[str, ...]:
-    return tuple(
-        str(call.get("tool_name") or "")
-        for call in action.get("tool_calls") or []
-    )
-
-
-def _parse_llm_consensus_judgment(
-    text: str,
-    candidates: list[dict[str, Any] | None],
-) -> tuple[int | None, tuple[int, ...]]:
-    """Validate a complete partition and return its semantic majority."""
-
-    if len(candidates) != 3 or candidates[0] is None:
-        raise ValueError("semantic judge requires one original and two samples")
-    payload = json.loads(text)
-    if not isinstance(payload, dict) or set(payload) != {"groups"}:
-        raise ValueError("semantic judge output must contain only groups")
-    raw_groups = payload["groups"]
-    if not isinstance(raw_groups, list) or not raw_groups:
-        raise ValueError("semantic judge groups must be a non-empty list")
-
-    groups: list[tuple[int, ...]] = []
-    flattened: list[int] = []
-    for raw_group in raw_groups:
-        if not isinstance(raw_group, list) or not raw_group:
-            raise ValueError("semantic judge groups must be non-empty arrays")
-        group: list[int] = []
-        for index in raw_group:
-            if isinstance(index, bool) or not isinstance(index, int):
-                raise ValueError("semantic judge indices must be integers")
-            if index not in {0, 1, 2}:
-                raise ValueError("semantic judge index is out of range")
-            group.append(index)
-        if len(set(group)) != len(group):
-            raise ValueError("semantic judge group repeats an index")
-        normalized = tuple(sorted(group))
-        groups.append(normalized)
-        flattened.extend(normalized)
-    if sorted(flattened) != [0, 1, 2]:
-        raise ValueError("semantic judge output must partition all candidates")
-
-    majority_groups = [group for group in groups if len(group) >= 2]
-    if not majority_groups:
-        return None, ()
-    if len(majority_groups) != 1:
-        raise ValueError("semantic judge returned multiple majority groups")
-    majority = majority_groups[0]
-    majority_candidates = [candidates[index] for index in majority]
-    if any(candidate is None for candidate in majority_candidates):
-        raise ValueError("semantic judge grouped a rejected candidate")
-    tool_signatures = {
-        _llm_consensus_tool_signature(candidate)
-        for candidate in majority_candidates
-        if candidate is not None
-    }
-    if len(tool_signatures) != 1:
-        raise ValueError("semantic majority changed the ordered tool set")
-    return min(majority), majority
-
-
-def _parse_llm_ask_triage_payload(
-    text: str,
-) -> tuple[str, str, dict[str, Any]]:
-    """Validate the ask classifier's strict label and proposed read payload."""
-
-    payload = json.loads(text)
-    required_keys = {"label", "tool_name", "arguments_json"}
-    if not isinstance(payload, dict) or set(payload) != required_keys:
-        raise ValueError("ask triage output must contain exactly the schema keys")
-    label = payload["label"]
-    tool_name = payload["tool_name"]
-    arguments_json = payload["arguments_json"]
-    if label not in {
-        "RESOLVABLE_BY_READ",
-        "GENUINE_AMBIGUITY",
-        "NO_AMBIGUITY",
-    }:
-        raise ValueError("ask triage label is invalid")
-    if not isinstance(tool_name, str) or not isinstance(arguments_json, str):
-        raise TypeError("ask triage call fields must be strings")
-    arguments = json.loads(arguments_json)
-    if not isinstance(arguments, dict):
-        raise TypeError("ask triage arguments_json must decode to an object")
-    if label != "RESOLVABLE_BY_READ" and (tool_name or arguments):
-        raise ValueError("non-read labels must not propose a tool call")
-    if label == "RESOLVABLE_BY_READ" and not tool_name:
-        raise ValueError("resolvable label requires a tool name")
-    return label, tool_name, arguments
-
-
-def _parse_llm_limitation_payload(
-    text: str,
-) -> tuple[str, str, dict[str, Any], str]:
-    payload = json.loads(text)
-    keys = {"label", "tool_name", "arguments_json", "finding"}
-    if not isinstance(payload, dict) or set(payload) != keys:
-        raise ValueError("limitation classifier output has invalid keys")
-    label = payload["label"]
-    if label not in {
-        "CAPABILITY_UNAVAILABLE_TERMINATE",
-        "CAPABILITY_AVAILABLE_CONTINUE",
-    }:
-        raise ValueError("limitation classifier label is invalid")
-    tool_name = payload["tool_name"]
-    finding = payload["finding"]
-    if not isinstance(tool_name, str) or not isinstance(finding, str):
-        raise TypeError("limitation classifier text fields must be strings")
-    arguments = json.loads(payload["arguments_json"])
-    if not isinstance(arguments, dict):
-        raise TypeError("limitation classifier arguments must be an object")
-    if label == "CAPABILITY_UNAVAILABLE_TERMINATE" and (tool_name or arguments):
-        raise ValueError("terminate label must not propose a call")
-    if label == "CAPABILITY_AVAILABLE_CONTINUE" and not tool_name:
-        raise ValueError("continue label requires a call")
-    if not finding.strip():
-        raise ValueError("limitation classifier finding is empty")
-    return label, tool_name, arguments, finding.strip()
-
-
-def _is_timeout_error(exc: BaseException) -> bool:
-    current: BaseException | None = exc
-    while current is not None:
-        if isinstance(current, TimeoutError):
-            return True
-        text = f"{type(current).__name__}: {current}".casefold()
-        if "timeout" in text or "timed out" in text:
-            return True
-        current = current.__cause__ or current.__context__
-    return False
-
-
 def _mutation_consensus_signature(action: dict[str, Any]) -> str:
     """Return the ordered exact (tool, canonical arguments) decision signature."""
 
@@ -6473,39 +4750,6 @@ def _injected_exact_ask_has_numeric_user_target(
     return False
 
 
-def _p3_ask_gate_v2_allows(
-    action: dict[str, Any],
-    *,
-    messages: list[dict[str, Any]],
-    tools_by_name: dict[str, dict[str, Any]],
-) -> bool:
-    """Allow P3's synthetic ask only for a truly source-less required number."""
-
-    for target in _numeric_mutation_targets(action, tools_by_name):
-        tool = tools_by_name.get(str(target["tool_name"])) or {}
-        schema = tool.get("function", {}).get("parameters", {})
-        required = set(schema.get("required") or [])
-        if target["field"] not in required:
-            continue
-        field_schema = target.get("schema") or {}
-        if "default" in field_schema:
-            continue
-        if _user_supplied_value_for_target(messages, target):
-            continue
-        concepts = _target_concepts(target)
-        sourced = False
-        for message in messages:
-            if message.get("role") not in {"system", "tool", "assistant"}:
-                continue
-            text = str(message.get("content") or "")
-            if _number_mentions(text) and concepts & _tokens(text):
-                sourced = True
-                break
-        if not sourced:
-            return True
-    return False
-
-
 def _target_concepts(target: dict[str, Any]) -> set[str]:
     return set(target["device_concepts"]) | set(target["field_concepts"])
 
@@ -6841,20 +5085,7 @@ def _apply_pre_mutation_guards(
                 reads_episode=state.value_p3_preference_reads,
             )
         elif value_kind == "p3_fallback_ask":
-            if config.p3_ask_gate_v2 and not _p3_ask_gate_v2_allows(
-                pre_value_action,
-                messages=messages,
-                tools_by_name=state.tools_by_name,
-            ):
-                action = pre_value_action
-                value_kind = None
-                state.p3_ask_gate_v2_suppressions += 1
-                tally.p3_ask_gate_v2_suppressions += 1
-                ctx_logger.info(
-                    "Adaptive-minimal P3 ask gate v2 suppressed fallback ask",
-                    suppressions_episode=state.p3_ask_gate_v2_suppressions,
-                )
-            elif config.ask_type_gate and not _injected_exact_ask_has_numeric_user_target(
+            if config.ask_type_gate and not _injected_exact_ask_has_numeric_user_target(
                 pre_value_action,
                 messages=messages,
                 tools_by_name=state.tools_by_name,
@@ -8086,23 +6317,13 @@ def _ingest_tool_results(
         if key not in state.prefetch_result_keys:
             state.non_prefetch_tool_calls_executed += 1
         succeeded, error = _tool_result_status(content)
-        call = _tool_result_call(messages, message)
-        if call is not None and _is_route_candidate_getter(call, state.tools_by_name):
-            state.route_getter_call_counts[name] = (
-                state.route_getter_call_counts.get(name, 0) + 1
-            )
-        if succeeded and name:
-            state.successful_tool_names.add(name)
         if _tool_result_is_unavailable(content):
             signature = _tool_result_signature(messages, message)
             if signature is not None:
                 state.unavailable_tool_signatures.add(signature)
-            evidence = f"{name or '<unknown tool>'}: {content[:500]}"
-            if evidence not in state.unavailability_evidence:
-                state.unavailability_evidence.append(evidence)
-                del state.unavailability_evidence[:-8]
         if succeeded and name.startswith(_READ_PREFIXES):
             state.read_ledger.add(name)
+            call = _tool_result_call(messages, message)
             if name.startswith("get_") and call is not None:
                 signature = _tool_call_signature(call)
                 history = state.successful_get_results.setdefault(signature, [])
@@ -8122,6 +6343,7 @@ def _ingest_tool_results(
                 if name == "get_current_navigation_state":
                     _ingest_navigation_waypoints(payload, state)
         elif succeeded and _is_mutating_tool_name(name):
+            call = _tool_result_call(messages, message)
             signature = _tool_call_signature(call) if call is not None else None
             if signature is not None and signature not in state.successful_mutation_signatures:
                 state.successful_mutation_signatures.add(signature)
@@ -8578,335 +6800,13 @@ def _apply_route_resolver(
     return None, blocked, note
 
 
-def _apply_route_budget(
-    action: dict[str, Any], state: _EpisodeState, *, limit: int
-) -> tuple[dict[str, Any] | None, InternalFault | None, int, bool]:
-    """Stop every route-getter call after a per-tool execution budget.
-
-    Unlike the retired resolver, the count includes successful and failed calls
-    and ignores argument variation. The first block schedules one catalog-
-    grounded re-decision. A repeated refusal to consume the catalog terminates
-    with a grounded limitation instead of permitting another loop iteration.
-    """
-
-    if action.get("action") != "tool_calls":
-        return action, None, 0, False
-    blocked_names = [
-        str(call.get("tool_name") or "")
-        for call in action.get("tool_calls") or []
-        if _is_route_candidate_getter(call, state.tools_by_name)
-        and state.route_getter_call_counts.get(
-            str(call.get("tool_name") or ""), 0
-        ) >= max(1, limit)
-    ]
-    if not blocked_names:
-        return action, None, 0, False
-    unique = sorted(set(blocked_names))
-    context = _route_candidate_context(state)
-    fresh = [name for name in unique if name not in state.route_budget_redirected_tools]
-    if fresh:
-        state.route_budget_redirected_tools.update(fresh)
-        catalog_note = context or "[] (no usable route candidate was returned)"
-        return (
-            None,
-            InternalFault(
-                "route_budget",
-                "The route getter budget is exhausted. Do not call the route "
-                "getter again. Consume the cached environment-grounded "
-                "(start_id, destination_id, route_id) catalog and take the "
-                "requested next action now. Cached catalog: " + catalog_note,
-            ),
-            len(blocked_names),
-            False,
-        )
-    return (
-        {
-            "action": "respond",
-            "content": (
-                "I could not complete the requested route change from the "
-                "route candidates returned by the navigation system, and I "
-                "did not issue another speculative route lookup or mutation."
-            ),
-        },
-        None,
-        len(blocked_names),
-        True,
-    )
-
-
-_NAV_INTENT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    (
-        "delete_waypoint",
-        re.compile(
-            r"\b(?:remove|delete|drop|cancel)\b.{0,50}"
-            r"\b(?:waypoint|intermediate\s+stop|stop)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "replace_waypoint",
-        re.compile(
-            r"\b(?:replace|change|swap)\b.{0,50}"
-            r"\b(?:waypoint|intermediate\s+stop|stop)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "delete_final_destination",
-        re.compile(
-            r"\b(?:remove|delete|drop|cancel)\b.{0,60}"
-            r"\b(?:final\s+destination|destination|endpoint|from\s+(?:the|my|your)\s+route)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "replace_final_destination",
-        re.compile(
-            r"\b(?:replace|change|switch)\b.{0,60}"
-            r"\b(?:final\s+destination|destination|endpoint)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "start_new_navigation",
-        re.compile(
-            r"\b(?:navigate|navigation|route)\b.{0,60}"
-            r"\b(?:to|start|set\s+up|begin)\b|"
-            r"\b(?:start|set\s+up|begin)\b.{0,60}\bnavigation\b",
-            re.IGNORECASE,
-        ),
-    ),
-)
-
-
-def _requested_navigation_intent(messages: list[dict[str, Any]]) -> str | None:
-    for message in reversed(messages):
-        if message.get("role") != "user":
-            continue
-        text = str(message.get("content") or "")
-        for intent, pattern in _NAV_INTENT_PATTERNS:
-            if pattern.search(text):
-                return intent
-    return None
-
-
-def _navigation_call_intent(name: str) -> str | None:
-    lowered = name.casefold()
-    if lowered == "navigation_delete_destination":
-        return "delete_final_destination"
-    if lowered == "navigation_replace_final_destination":
-        return "replace_final_destination"
-    if lowered == "navigation_delete_waypoint":
-        return "delete_waypoint"
-    if lowered == "navigation_replace_one_waypoint":
-        return "replace_waypoint"
-    if lowered == "set_new_navigation":
-        return "start_new_navigation"
-    if lowered == "delete_current_navigation":
-        return "clear_all_navigation"
-    return None
-
-
-def _nav_intent_preflight_fault(
-    action: dict[str, Any], *, messages: list[dict[str, Any]], state: _EpisodeState
-) -> InternalFault | None:
-    if action.get("action") != "tool_calls":
-        return None
-    requested = _requested_navigation_intent(messages)
-    for call in action.get("tool_calls") or []:
-        name = str(call.get("tool_name") or "")
-        drafted = _navigation_call_intent(name)
-        if drafted is None:
-            continue
-        arguments = call.get("arguments") or {}
-        if requested is not None and drafted != requested:
-            return InternalFault(
-                "nav_intent_preflight",
-                f"The user requested navigation intent {requested!r}, but "
-                f"the drafted call {name!r} performs {drafted!r}. Do not "
-                "substitute clear-all, waypoint, destination, replace, or "
-                "start operations for one another; re-decide once.",
-            )
-        if name.casefold() == "navigation_delete_destination":
-            target = arguments.get("destination_id_to_delete")
-            final = state.navigation_waypoints[-1] if state.navigation_waypoints else None
-            if final is not None and target != final:
-                return InternalFault(
-                    "nav_intent_preflight",
-                    f"The drafted destination deletion targets {target!r}, "
-                    f"but the latest navigation state says the final "
-                    f"destination is {final!r}. A non-final waypoint must not "
-                    "be deleted with the final-destination tool.",
-                )
-        if name.casefold() == "set_new_navigation":
-            tool = state.tools_by_name.get(name) or {}
-            properties = (
-                tool.get("function", {})
-                .get("parameters", {})
-                .get("properties", {})
-            )
-            route_fields = [field for field in properties if "route_id" in str(field)]
-            if not route_fields or not any(arguments.get(field) for field in route_fields):
-                return InternalFault(
-                    "nav_intent_preflight",
-                    "Starting navigation requires an available, non-empty "
-                    "route-id argument grounded in the route catalog. That "
-                    "required capability is absent from this drafted call.",
-                )
-            selected = {
-                str(route_id)
-                for field in route_fields
-                for route_id in (
-                    arguments.get(field)
-                    if isinstance(arguments.get(field), list)
-                    else [arguments.get(field)]
-                )
-                if isinstance(route_id, str)
-            }
-            user_text = _all_user_text(messages).casefold()
-            wants_no_toll = bool(
-                re.search(
-                    r"\b(?:no\s+tolls?|without\s+tolls?|toll[- ]free|"
-                    r"does(?:n['’]t| not)\s+(?:use|include)\s+tolls?)\b",
-                    user_text,
-                )
-            )
-            if wants_no_toll:
-                selected_rows = [
-                    candidate
-                    for candidates in state.route_candidates_by_pair.values()
-                    for candidate in candidates
-                    if str(candidate.get("route_id") or "") in selected
-                ]
-                has_toll_free_alternative = any(
-                    candidate.get("includes_toll") is False
-                    for candidates in state.route_candidates_by_pair.values()
-                    for candidate in candidates
-                )
-                if has_toll_free_alternative and any(
-                    candidate.get("includes_toll") is True
-                    for candidate in selected_rows
-                ):
-                    return InternalFault(
-                        "nav_intent_preflight",
-                        "The drafted new-navigation route includes tolls even "
-                        "though the user selected a toll-free route and the "
-                        "catalog contains a toll-free candidate. Re-decide "
-                        "from the grounded route catalog before mutating.",
-                    )
-            selected_rows = [
-                candidate
-                for candidates in state.route_candidates_by_pair.values()
-                for candidate in candidates
-                if str(candidate.get("route_id") or "") in selected
-            ]
-            has_toll_free_alternative = any(
-                candidate.get("includes_toll") is False
-                for candidates in state.route_candidates_by_pair.values()
-                for candidate in candidates
-            )
-            accepted_tolls = bool(
-                re.search(
-                    r"\b(?:tolls?\s+(?:are|is)\s+(?:okay|ok|fine|acceptable)|"
-                    r"accept\s+tolls?|pay\s+(?:the\s+)?tolls?|tolls?\s+are\s+fine)\b",
-                    user_text,
-                )
-            )
-            if (
-                not wants_no_toll
-                and not accepted_tolls
-                and has_toll_free_alternative
-                and any(
-                    candidate.get("includes_toll") is True
-                    for candidate in selected_rows
-                )
-            ):
-                return InternalFault(
-                    "nav_intent_preflight",
-                    "The drafted route includes tolls and the catalog contains "
-                    "a toll-free alternative, but the user has not accepted or "
-                    "rejected tolls yet. Present that grounded distinction and "
-                    "re-decide before the irreversible navigation mutation.",
-                )
-    return None
-
-
-def _explicit_confirmation_for_weather(messages: list[dict[str, Any]]) -> bool:
-    latest_user = _latest_user_text(messages).casefold().strip()
-    if latest_user not in {"yes", "yes.", "confirm", "confirmed", "go ahead", "proceed"}:
-        return False
-    return any(
-        message.get("role") == "assistant"
-        and "fog" in str(message.get("content") or "").casefold()
-        and "weather" in str(message.get("content") or "").casefold()
-        for message in messages[-6:]
-    )
-
-
-def _step_coverage_missing_tools(
-    action: dict[str, Any], *, messages: list[dict[str, Any]], state: _EpisodeState
-) -> list[str]:
-    """Return explicit/catalog-derived requested steps absent at terminal time."""
-
-    if action.get("action") != "respond" or "?" in str(action.get("content") or ""):
-        return []
-    user_text = _all_user_text(messages).casefold()
-    user_tokens = _tokens(user_text)
-    missing: set[str] = set()
-    available = state.tools_by_name
-    done = state.successful_tool_names
-
-    computed_rules = {
-        "calculate_charging_time_by_soc": bool(
-            re.search(r"\b(?:charging|charge)\s+time\b|\btime\b.{0,30}\bcharg", user_text)
-        ),
-        "get_distance_by_soc": bool(
-            re.search(
-                r"\b(?:driving\s+distance|how\s+far|range|charging\s+stops?|"
-                r"distance\s+from|state\s+of\s+charge|soc)\b",
-                user_text,
-            )
-        ),
-        "get_charging_specs_and_status": bool(
-            re.search(r"\b(?:battery|charging)\b", user_text)
-            and re.search(r"\b(?:range|make\s+it|charging\s+station|charger|power)\b", user_text)
-        ),
-    }
-    for name, requested in computed_rules.items():
-        if requested and name in available and name not in done:
-            missing.add(name)
-
-    for name, tool in available.items():
-        if not _is_mutating_tool_name(name) or name in done:
-            continue
-        core = _name_core_tokens(name)
-        if len(core & user_tokens) >= 2:
-            missing.add(name)
-        elif name == "send_email" and {"send", "email"} <= user_tokens:
-            missing.add(name)
-        elif name == "set_new_navigation" and bool(
-            {"navigate", "navigation"} & user_tokens
-        ):
-            missing.add(name)
-
-    if (
-        "set_fog_lights" in done
-        and "get_weather" in available
-        and "get_weather" not in done
-        and not _explicit_confirmation_for_weather(messages)
-    ):
-        missing.add("get_weather")
-    return sorted(missing)
-
-
 _TEXTCALL_DIRECT = re.compile(
     r"\bi\s+will\s+call\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+with\s+parameters\s*",
     re.IGNORECASE,
 )
 _TEXTCALL_NEAR_TERMINAL = re.compile(
-    r"\b(?:i(?:['’]m|\s+am)\s+(?:ready|going)\s+to\s+"
-    r"(?:send|call|set|start)|i\s+will\s+(?:call|send)\s+"
-    r"[a-zA-Z_][a-zA-Z0-9_]*|(?:ready|about)\s+to\s+send)\b",
+    r"\b(?:i(?:['’]m|\s+am)\s+ready\s+to\s+(?:send|call|set|start)|"
+    r"i\s+will\s+call\s+[a-zA-Z_][a-zA-Z0-9_]*)\b",
     re.IGNORECASE,
 )
 
@@ -8914,75 +6814,49 @@ _TEXTCALL_NEAR_TERMINAL = re.compile(
 def _textcall_guard_candidate(
     action: dict[str, Any], state: _EpisodeState
 ) -> tuple[dict[str, Any] | None, bool]:
-    """Detect a mutation serialized as prose; execution is never synthesized."""
+    """Recover a schema-valid mutation serialized as terminal prose."""
 
     if action.get("action") != "respond":
         return None, False
     content = str(action.get("content") or "")
     if not _TEXTCALL_NEAR_TERMINAL.search(content):
         return None, False
-    return None, True
-
-
-_INABILITY_DRAFT = re.compile(
-    r"\b(?:cannot|can't|unable|do not have|don't have|no available tool|"
-    r"not available|is unavailable|could not)\b",
-    re.IGNORECASE,
-)
-
-
-def _limitation_classifier_trigger(
-    action: dict[str, Any], *, messages: list[dict[str, Any]], state: _EpisodeState
-) -> str | None:
-    """Return generic catalog/result evidence for one careful classifier call."""
-
-    draft = str(action.get("content") or "")
-    user_text = _all_user_text(messages).casefold()
-    validation_fault = validate_next_action(action, state.tools_by_name)
-    if validation_fault is None:
-        validation_fault = _schema_preflight_fault(action, state.tools_by_name)
-    calls = action.get("tool_calls") or [] if action.get("action") == "tool_calls" else []
-    retries_unavailable = any(
-        _tool_call_signature(call) in state.unavailable_tool_signatures
-        for call in calls
-    )
-    substitute = any(
-        str(call.get("tool_name") or "").casefold() in {"calculate_math"}
-        for call in calls
-    )
-    computed_catalog_gap = bool(
-        re.search(
-            r"\b(?:range|driving\s+distance|how\s+far|how\s+many\s+"
-            r"(?:miles?|kilometers?|kilometres?))\b",
-            user_text,
-        )
-        and "get_distance_by_soc" not in state.tools_by_name
-        and action.get("action") == "respond"
-        and bool(re.search(r"\d", draft))
-    )
-    repeats_inability = bool(_INABILITY_DRAFT.search(draft))
-    if not (
-        validation_fault is not None
-        or retries_unavailable
-        or substitute
-        or computed_catalog_gap
-        or (state.unavailability_evidence and repeats_inability)
+    match = _TEXTCALL_DIRECT.search(content)
+    if match is None:
+        return None, True
+    name = match.group(1)
+    if not _is_mutating_tool_name(name):
+        return None, False
+    if any(
+        str(item.get("tool_name") or "").casefold() == name.casefold()
+        for item in state.successful_mutations
     ):
-        return None
-    evidence = list(state.unavailability_evidence[-4:])
-    if validation_fault is not None:
-        evidence.append(validation_fault.text)
-    if computed_catalog_gap:
-        evidence.append(
-            "The user requested a range/distance computation, but the catalog "
-            "contains no get_distance_by_soc capability and the draft states a "
-            "numeric result without that authoritative call."
-        )
-    if substitute:
-        evidence.append("The draft retries a substitute calculation call.")
-    if repeats_inability:
-        evidence.append("The draft repeats an inability statement.")
-    return " ".join(evidence)[-4000:]
+        return None, False
+    tool_name = next(
+        (candidate for candidate in state.tools_by_name if candidate.casefold() == name.casefold()),
+        None,
+    )
+    if tool_name is None:
+        return None, True
+    start = content.find("{", match.end())
+    if start < 0:
+        return None, True
+    try:
+        arguments, _ = json.JSONDecoder().raw_decode(content[start:])
+    except (TypeError, json.JSONDecodeError):
+        return None, True
+    if not isinstance(arguments, dict):
+        return None, True
+    candidate = {
+        "action": "tool_calls",
+        "tool_calls": [{"tool_name": tool_name, "arguments": arguments}],
+    }
+    if (
+        _schema_preflight_fault(candidate, state.tools_by_name) is not None
+        or validate_next_action(candidate, state.tools_by_name) is not None
+    ):
+        return None, True
+    return candidate, True
 
 
 def _walk_string_arguments(value: Any, path: tuple[str, ...] = ()) -> list[tuple[str, str]]:
@@ -9079,63 +6953,6 @@ _QUESTION_RESOLUTION = re.compile(
     r"(?:can|could)\s+you\s+tell\s+me|low[- ]?beam|high[- ]?beam)\b",
     re.IGNORECASE,
 )
-_MODEL_CLARIFICATION_QUESTION = re.compile(
-    r"\b(?:do\s+you\s+(?:want|mean|prefer)|would\s+you\s+(?:like|prefer)|"
-    r"should\s+i|which|who|what\s+(?:exact|specific)|"
-    r"(?:can|could|would)\s+you\s+(?:clarify|confirm|tell|provide)|"
-    r"please\s+(?:clarify|confirm))\b",
-    re.IGNORECASE,
-)
-_GROUNDING_QUESTION_STOPWORDS = {
-    "a", "an", "and", "are", "can", "could", "do", "exact", "for",
-    "i", "is", "it", "me", "my", "of", "or", "please", "should",
-    "specific", "tell", "the", "to", "use", "want", "what", "which",
-    "who", "would", "you", "your",
-}
-_ASK_SLOT_STOPWORDS = _GROUNDING_QUESTION_STOPWORDS | {
-    "about", "ask", "clarify", "confirm", "did", "does", "give", "help",
-    "know", "like", "mean", "need", "prefer", "provide", "say", "select",
-    "specify", "tell", "that", "them", "these", "this", "those", "using",
-    "would",
-    # Values and polarity words distinguish candidate answers, not the slot
-    # being requested.
-    "active", "closed", "current", "exact", "high", "low", "off", "on",
-    "open", "preferred", "specific",
-}
-_ASK_SLOT_CANONICAL = {
-    "assistant": "contact",
-    "contact": "contact",
-    "person": "contact",
-    "recipient": "contact",
-    "secretary": "contact",
-    "email": "email",
-    "mail": "email",
-    "telephone": "phone",
-    "phone": "phone",
-    "amount": "value",
-    "degree": "value",
-    "level": "value",
-    "percent": "value",
-    "percentage": "value",
-    "setting": "value",
-    "value": "value",
-    "destination": "location",
-    "location": "location",
-    "place": "location",
-    "beam": "light",
-    "headlight": "light",
-    "light": "light",
-    "path": "route",
-    "route": "route",
-    "colour": "color",
-    "color": "color",
-    "hour": "time",
-    "time": "time",
-    "position": "seat",
-    "seat": "seat",
-    "temp": "temperature",
-    "temperature": "temperature",
-}
 _COMMON_CAPITALIZED = {
     "alright", "can", "could", "dear", "good", "great", "hello", "hey",
     "hi", "i", "okay", "please", "sure", "thanks", "thank", "the", "yes",
@@ -9258,170 +7075,6 @@ def _read_resolve_action(
     }
 
 
-def _is_clarification_question(action: dict[str, Any]) -> bool:
-    """Conservatively recognize a model-authored request for user resolution."""
-
-    if action.get("action") != "respond":
-        return False
-    content = str(action.get("content") or "")
-    return "?" in content and bool(_MODEL_CLARIFICATION_QUESTION.search(content))
-
-
-def _ask_slot_signature(action: dict[str, Any]) -> str | None:
-    """Return a normalized set of parameter/referent nouns for an ask."""
-
-    if not _is_clarification_question(action):
-        return None
-    content = str(action.get("content") or "").casefold()
-    content = re.sub(r"\be[\s-]?mail\s+address(?:es)?\b", "email", content)
-    content = re.sub(r"\bphone\s+number(?:s)?\b", "phone", content)
-    slots = {
-        _ASK_SLOT_CANONICAL.get(token, token)
-        for token in _tokens(content)
-        if token not in _ASK_SLOT_STOPWORDS
-    }
-    return json.dumps(sorted(slots), ensure_ascii=False, separators=(",", ":"))
-
-
-def _select_ask_content_consensus(
-    candidates: list[dict[str, Any] | None],
-    *,
-    tools_by_name: dict[str, dict[str, Any]] | None = None,
-) -> tuple[dict[str, Any], bool, list[str | None]]:
-    """Select a 2-of-3 ask-slot mode, with a hard ask-only fail-open.
-
-    ``tools_by_name`` is accepted for an explicit catalog-context interface;
-    slot extraction itself intentionally uses only the draft's internal nouns.
-    This keeps the vote independent of task IDs and evaluator signals.
-    """
-
-    del tools_by_name
-    if len(candidates) != 3 or candidates[0] is None:
-        raise ValueError(
-            "ask-content consensus requires one original and two samples"
-        )
-    original = candidates[0]
-    assert original is not None and _is_clarification_question(original)
-    signatures = [
-        _ask_slot_signature(candidate) if candidate is not None else None
-        for candidate in candidates
-    ]
-    # HARD LAW: both additional completions must be asks. An action, response,
-    # malformed sample, or missing slot signature makes the vote ineligible.
-    if signatures[1] is None or signatures[2] is None:
-        return original, False, signatures
-    counts = Counter(signature for signature in signatures if signature is not None)
-    majority_signature = next(
-        (signature for signature in signatures if counts[signature] >= 2),
-        None,
-    )
-    if majority_signature is None:
-        return original, False, signatures
-    selected_index = signatures.index(majority_signature)
-    selected = candidates[selected_index]
-    assert selected is not None and _is_clarification_question(selected)
-    return selected, True, signatures
-
-
-def _grounded_ask_read_action(
-    action: dict[str, Any],
-    *,
-    messages: list[dict[str, Any]],
-    state: _EpisodeState,
-) -> tuple[dict[str, Any], str] | None:
-    """Derive at most two free reads before a model-authored clarification.
-
-    This is deliberately non-suppressive.  It only replaces the draft for one
-    tool turn so the next model decision can see enumerated state; the planner
-    then accepts that re-draft whether it asks, acts, or responds.  A call-set
-    signature is the referent key, bounding repeated wording about the same
-    catalogued entity/state without task IDs or evaluator signals.
-    """
-
-    if not _is_clarification_question(action):
-        return None
-    question = str(action.get("content") or "")
-    calls: list[dict[str, Any]] = []
-
-    contact = _contact_resolution_read(question, messages, state)
-    if contact is not None:
-        calls.extend(contact.get("tool_calls") or [])
-
-    all_user = _all_user_text(messages)
-    preference_tool = state.tools_by_name.get("get_user_preferences")
-    if (
-        len(calls) < 2
-        and preference_tool is not None
-        and not _preference_tool_was_called(messages)
-        and _REFERENT_PREFERENCE.search(question + "\n" + all_user)
-        and not any(
-            call.get("tool_name") == "get_user_preferences" for call in calls
-        )
-    ):
-        arguments = _preference_read_arguments(preference_tool)
-        if arguments is not None:
-            candidate = {
-                "tool_name": "get_user_preferences",
-                "arguments": arguments,
-            }
-            candidate_action = {"action": "tool_calls", "tool_calls": [candidate]}
-            if _schema_preflight_fault(candidate_action, state.tools_by_name) is None:
-                calls.append(candidate)
-
-    question_tokens = _tokens(question) - _GROUNDING_QUESTION_STOPWORDS
-    selected_names = {str(call.get("tool_name") or "") for call in calls}
-    ranked: list[tuple[int, str, dict[str, Any]]] = []
-    for name, tool in state.tools_by_name.items():
-        if (
-            not name.casefold().startswith("get_")
-            or name in selected_names
-            or _tool_was_called(messages, name)
-        ):
-            continue
-        arguments = _safe_read_arguments(tool)
-        if arguments is None:
-            continue
-        if not arguments and not _semantic_prefetch_call_valid(tool, arguments):
-            # Optional-looking lookup schemas can still reject an empty call at
-            # runtime.  Grounding reads must be semantically valid before they
-            # are emitted because a later correction cannot erase tool errors.
-            continue
-        name_overlap = question_tokens & (
-            _name_core_tokens(name) | _parameter_name_tokens(tool)
-        )
-        schema_overlap = question_tokens & _schema_tokens(tool)
-        # A single description word is too weak (for example "current").
-        # Name/parameter overlap or two independent schema words is required.
-        if not name_overlap and len(schema_overlap) < 2:
-            continue
-        score = 5 * len(name_overlap) + 2 * len(schema_overlap)
-        ranked.append((score, name, arguments))
-    ranked.sort(key=lambda row: (-row[0], row[1]))
-    for _, name, arguments in ranked:
-        if len(calls) >= 2:
-            break
-        calls.append({"tool_name": name, "arguments": arguments})
-
-    if not calls:
-        return None
-    calls = calls[:2]
-    referent_key = json.dumps(
-        [
-            {
-                "tool_name": str(call.get("tool_name") or ""),
-                "arguments": call.get("arguments") or {},
-            }
-            for call in calls
-        ],
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    if referent_key in state.grounded_ask_seen_referents:
-        return None
-    return {"action": "tool_calls", "tool_calls": calls}, referent_key
-
-
 def _route_reference_preflight_fault(
     action: dict[str, Any], state: _EpisodeState
 ) -> InternalFault | None:
@@ -9532,12 +7185,6 @@ def _guard_mutation_consensus_candidate(
         return None, fault.text
     if config.route_reference_preflight:
         fault = _route_reference_preflight_fault(guarded, guard_state)
-        if fault is not None:
-            return None, fault.text
-    if config.nav_intent_preflight:
-        fault = _nav_intent_preflight_fault(
-            guarded, messages=messages, state=guard_state
-        )
         if fault is not None:
             return None, fault.text
     if config.repeated_read_breaker:

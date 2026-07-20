@@ -7,7 +7,7 @@ Run 2026-07-20 01:06–01:08 UTC, `scenarios/track_2_agent_under_test_cerebras/g
 | Component | Value |
 |---|---|
 | Evaluator | `ghcr.io/car-bench/car-bench-evaluator:latest` (official, unmodified) |
-| Agent under test | `ghcr.io/ab-shetty/rosebud-car-bench-agent@sha256:faaf0857d6a5510b4bd89061c36dfe8e3b39ef29be98742eae39b681d6099536` (digest-pinned, pulled from GHCR) |
+| Agent under test | `ghcr.io/ab-shetty/rosebud-car-bench-agent@sha256:fa3f4bb0d955be8bf0185b78797c392becc2e57e638f7955d0f9ad8274378014` (digest-pinned, pulled from GHCR) |
 | Split | `train`, 1 base + 1 hallucination + 1 disambiguation, 1 trial |
 
 The agent image is the **exact digest** named in the submission scenario; this
@@ -45,3 +45,31 @@ token fields, and per-turn call counts are all present and identical in kind.
 Our repository's evaluator-side diffs against upstream `main` are limited to a
 `--no-stream` transport option in the A2A client and removal of an unused
 import — no scoring logic is modified.
+
+## Digest history and a corrected defect
+
+Three digests were published during preparation. Only the last is submitted.
+
+| Digest | Harness source | Status |
+|---|---|---|
+| `faaf0857` | `3dcf4303` (p3i77) | superseded — wrong harness source |
+| `ae60b8dc` | `3dcf4303` (p3i77) | superseded — wrong harness source; added API-base configurability |
+| **`fa3f4bb0`** | **`0122d790` (frozen p3i67)** | **submitted** |
+
+The first two images were built from the development working tree, which by
+then contained the p3i77 repair-bundle source. Although the submitted scenario
+enables only the p3i67 flag set, p3i77 had also *modified an already-enabled*
+mechanism (`TEXTCALL_GUARD`: direct-execute changed to re-decide-only, with a
+broadened detector), so the runtime was not byte-identical to the arm that
+produced the reported 68/101. The final image is built from the frozen p3i67
+worktree at commit `c0161b6`; `adaptive_minimal.py` inside the pulled image
+hashes to `0122d790`, matching the p3i78 measurement manifest exactly.
+
+Two deliberate, non-harness deviations from that frozen commit are retained:
+`openai-harmony` moved into the runtime dependency extra (without it the
+container cannot start), and `TRACK2_CEREBRAS_API_BASE` plumbing in
+`server.py` (required by the env-configurability rule; identical default).
+Harness logic is unchanged.
+
+Option C was re-run against `fa3f4bb0`: exit 0, 3 tasks, Pass^1 66.7%,
+`Adaptive-minimal startup checks passed`.

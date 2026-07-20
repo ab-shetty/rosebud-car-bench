@@ -15,7 +15,7 @@ GEMINI_API_KEY = "${GEMINI_API_KEY:?Set GEMINI_API_KEY (Gemini API key for the f
 LOGURU_LEVEL = "${LOGURU_LEVEL:-INFO}"
 
 [agent_under_test]
-image = "ghcr.io/ab-shetty/rosebud-car-bench-agent@sha256:ae60b8dc2cb3b6e170fb0a9ed078676d423f8ac9de92f26f4291828a0e901a6b"
+image = "ghcr.io/ab-shetty/rosebud-car-bench-agent@sha256:fa3f4bb0d955be8bf0185b78797c392becc2e57e638f7955d0f9ad8274378014"
 
 [agent_under_test.env]
 # --- Inference credentials and routing (all configurable) ---
