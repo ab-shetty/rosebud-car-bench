@@ -1,9 +1,7 @@
 # CAR-bench Track 2 final submission scenario — "rosebud" fixed-fast arm.
 #
 # Evaluator image is the official organizer-published image and is not modified.
-# The agent image must be replaced with the digest-pinned GHCR reference before
-# submission (tag-only references are not accepted).
-#
+
 # No secret VALUES appear in this file; only env var NAMES with ${VAR:?} /
 # ${VAR:-default} indirection.
 
