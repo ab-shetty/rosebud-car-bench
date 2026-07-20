@@ -43,7 +43,7 @@ Three load-bearing layers, each with causal evidence in `results/`:
    exact 2-of-3 `(tool, arguments)` signature majority, failing open otherwise.
    Read and respond turns cost nothing extra.
 
-## Compute profile (Track 2 constraint)
+## Compute profile
 
 Measured over 303 trials of the official-conditions run: **1.78 calls per
 decision** on average. Consensus contributes 2 extra calls only at mutation
