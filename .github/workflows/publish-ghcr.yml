@@ -1,0 +1,76 @@
+# Inactive GHCR publishing template.
+#
+# GitHub only runs workflow files ending in .yml or .yaml under .github/workflows,
+# so this file is deliberately inert. To publish your own agent image with GitHub
+# Actions, copy or rename this file to:
+#
+#   .github/workflows/publish-ghcr.yml
+#
+# Then update the image name, Dockerfile path, and matrix entries for your agent.
+# The workflow remains manual-only and requires typing PUBLISH before it pushes.
+
+name: Publish Agent Under Test To GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_publish:
+        description: "Type PUBLISH to push images to GHCR"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    if: inputs.confirm_publish == 'PUBLISH'
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          # Example participant agent. Add or replace entries intentionally.
+          - name: rosebud-car-bench-agent
+            dockerfile: src/track_2_agent_under_test_cerebras/Dockerfile.track-2-agent-under-test-cerebras
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Change this if you want a different package name.
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and push Docker image (${{ matrix.name }})
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+
+      - name: Output image digest
+        run: |
+          echo "## Docker Image Published: ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
