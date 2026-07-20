@@ -15,8 +15,21 @@ split, n=3, Pass^3:
 
 | Arm | Pass^3 | Pass^1 | p50 latency | p90 latency |
 |---|---:|---:|---:|---:|
-| Stock baseline | 43/101 (42.6%) | 60.1% | 3.153s | 11.156s |
+| Stock baseline | 50/101 (49.5%) | 63.0% | 2.858s | 6.982s |
 | **This submission** | **68/101 (67.3%)** | **75.9%** | **3.625s** | **9.374s** |
+
+Both rows are measured under identical official roles, so the **+17.8 point
+Pass^3 gain (+18 tasks)** is a like-for-like harness effect. We buy that
+accuracy with latency: the harness is **26.8% slower at p50 and 34.3% slower
+at p90** than the stock baseline, the cost of prefetch reads and of sampling
+two extra completions at mutation points.
+
+An earlier version of this table compared against a baseline measured with a
+different user simulator (GPT-5-mini), which overstated the gain as +24.8
+points and made our p90 appear faster than baseline. Measuring the baseline
+under the official roles showed that **6.9 of those points came from the
+simulator/judge change, not the harness**, and that our p90 is in fact higher.
+The numbers above are the corrected, matched-role comparison.
 
 Full per-task matrices and the measurement reports are in [`results/`](results/).
 
